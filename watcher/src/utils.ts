@@ -36,7 +36,7 @@ export function toOwner(
 
 export function toMergedOutRef(
   { txHash, outputIndex }: OutRef,
-) {
+): string {
   return txHash + outputIndex;
 }
 
@@ -51,7 +51,7 @@ export function fromMergedOutRef(
 
 export function toMergedPoint(
   { hash, slot }: Point,
-) {
+): string {
   return hash + slot;
 }
 
