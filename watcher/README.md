@@ -1,6 +1,6 @@
 # Nebula Watcher
 
-Nebula Watcher indexes data from the chain for the marketplace in an sqlite database. It handles rollbacks and emits events. Additionaly there is small query server (Nebula Querier), which lets you query the sqlite database as file, but also allows you to make queries directly to retrieve data from the marketplace (Right now it's very basic, but will be extended over time).
+Nebula Watcher indexes data from the chain for the marketplace in an sqlite database. It handles rollbacks and emits events. Additionaly there is a small query server (Nebula Querier), which lets you query the sqlite database as file, but also allows you to make queries directly to retrieve data from the marketplace (Right now it's very basic, but it will be extended over time).
 
 ## Requirements
 
@@ -8,7 +8,7 @@ Nebula Watcher indexes data from the chain for the marketplace in an sqlite data
 
 ## SQL Schema
 
-- We store lovelace as `number` not as `bigint` in JavaScript since sqlite doesn't support bigints.
+- We store lovelace as `number` not as `bigint` in JavaScript since sqlite doesn't support bigints. And `number` is sufficient for now.
 
 ```sql
 CREATE TABLE IF NOT EXISTS listings (

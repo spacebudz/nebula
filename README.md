@@ -1,7 +1,7 @@
 <p align="center">
   <img width="140px" src="./assets/nebula.svg" align="center"/>
   <h1 align="center">Nebula</h1>
-  <p align="center">A marketplace contract including a chain indexer and event listener for individual projects.</p>
+  <p align="center">A Cardano NFT marketplace contract including chain indexer and event listener for individual projects.</p>
 </p>
 
 ⚠️ The contract hasn't been thoroughly tested yet. Use the contract at your own risk. Changes/improvements will still happen. Changes can also be breaking.
@@ -10,9 +10,9 @@
 
 - [Deno](https://deno.land/) $\ge$ Version 1.28.3
 
-## 💨 Quick start
+## 🚀 Quick start
 
-1. Create royalty/fee token
+1. Import `Contract` and `Lucid` and create royalty/fee token.
 
 ```ts
 import { Contract } from "https://deno.land/x/nebula@0.1.0/contract/mod.ts"
@@ -45,7 +45,7 @@ const txHash = await Contract.createRoyalty(
 console.log(txHash);
 ```
 
-This creates a unique royalty token with and sends it to a script address controlled by the owner address. The output contains the royalty/fee information. After calling `Contract.createRoyalty(..)` you should see a message in the terminal including the `royalty token`. Paste it into the Contract config as described in the next step.
+This creates a unique royalty token and sends it to a script address controlled by the owner. The output contains the royalty/fee information. After calling `Contract.createRoyalty(..)` you should see a message in the terminal including the `royalty token`. Paste it into the Contract config as described in the next step.
 
 2. Instantiate the contract and deploy reference scripts.
 
@@ -121,7 +121,7 @@ And much more is possible!
 
 ## Nebula Watcher
 
-If you want to keep track of historic data or want to index these data or want to listen to certain events, then you may want to run the watcher.\
+If you want to keep track of historic data or want to index marketplace data or want to listen to certain events, then you may want to run the watcher.\
 It is not a requirement to run the core of the marketplace.
 
 ### Requirements
