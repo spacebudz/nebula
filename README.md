@@ -254,7 +254,7 @@ Runs on port `3000` by default. It hosts the database and allows you to make sim
 
 ## Nebula Contract
 
-To interact with the contract and execute the below listed commands you need to be in the `contract` directory.
+To execute the below listed commands you need to be in the `contract` directory.
 
 ### Bundle for NPM/Node
 
