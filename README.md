@@ -54,8 +54,7 @@ This creates a unique royalty token and sends it to a script address controlled 
 
 ```ts
 const contract = new Contract(lucid, {
-  royaltyToken:
-    "<royalty_token>",
+  royaltyToken: "<royalty_token>",
   owner, // Make sure you use the same owner here as in Contract.createRoyalty(..)!
   policyId: "<policy_id_of_your_nft_project>",
 });
@@ -69,8 +68,7 @@ After calling `contract.deployScripts()` you should see a message in the termina
 
 ```ts
 const contract = new Contract(lucid, {
-  royaltyToken:
-    "<royalty_token>",
+  royaltyToken: "<royalty_token>",
   owner, // Make sure you use the same owner here as the one in Contract.createRoyalty(..)!
   policyId: "<policy_id_of_your_nft_project>",
   deployTxHash: "<deploy_tx_hash>",
