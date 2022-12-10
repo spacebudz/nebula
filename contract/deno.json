@@ -1,0 +1,12 @@
+{
+  "tasks": {
+    "build": "deno run -A build.ts",
+    "build:contract": "cd src/ghc && cabal run contract"
+  },
+  "lint": {
+    "files": {
+      "include": ["src/"],
+      "exclude": ["src/ghc/", "src/onchain.hs"]
+    }
+  }
+}
