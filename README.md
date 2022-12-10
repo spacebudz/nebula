@@ -103,7 +103,7 @@ console.log(await contract.buy([listing]));
 
 Place a floor/open bid with optional constraints (this only works if your NFT is CIP-0068 compliant):
 ```ts
-cnsole.log(
+console.log(
   await contract.bidOpen(10000000000n, {
     types: ["Bear"],
     traits: [{ trait: "Hockey Stick" }],
@@ -119,7 +119,7 @@ console.log(await contract.sell([{ bidUtxo: bid, assetName: idToBud(650) }]));
 
 And much more is possible!
 
-## ⏱ Nebula Watcher
+## Nebula Watcher
 
 If you want to keep track of historic data or want to index these data or want to listen to certain events, then you may want to run the watcher.\
 It is not a requirement to run the core of the marketplace.
@@ -242,7 +242,7 @@ deno run -A https://deno.land/x/nebula@0.1.0/watcher/mod.ts --ogmios-url ws://lo
 
 <img width="100%" src="./assets/watcher.png" align="center"/>
 
-## 🔎 Nebula Querier
+## Nebula Querier
 
 Run the querier: 
 
@@ -252,7 +252,7 @@ deno run -A https://deno.land/x/nebula@0.1.0/watcher/querier.ts --database ./mar
 
 Runs on port `3000` by default. It hosts the database and allows you to make simple queries. The API will likely be extended and improved over time.
 
-## 📄 Nebula Contract
+## Nebula Contract
 
 To interact with the contract and execute the below listed commands you need to be in the `contract` directory.
 
