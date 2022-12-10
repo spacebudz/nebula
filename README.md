@@ -10,7 +10,7 @@
 
 - [Deno](https://deno.land/) $\ge$ Version 1.28.3
 
-## 🚀 Quick start
+## Quick start
 
 1. Import `Contract` and `Lucid` and create royalty/fee token.
 
