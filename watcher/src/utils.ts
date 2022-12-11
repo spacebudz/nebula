@@ -91,6 +91,8 @@ export const checkpointToColor: Record<CheckpointType, string> = {
 };
 
 export function resolvePath(path: string | URL): string {
+  console.log(path);
+  console.log(Deno.cwd());
   if (path instanceof URL) return path.pathname;
   else if (/^(?:[a-z]+:)?\/\//i.test(path)) return path;
   else if (isAbsolute(path)) return path;
