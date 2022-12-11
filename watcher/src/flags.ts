@@ -1,7 +1,7 @@
 import { Config, MarketplaceEvent } from "./types.ts";
-import { resolve } from "https://deno.land/std@0.167.0/path/mod.ts";
 import { parse } from "https://deno.land/std@0.119.0/flags/mod.ts";
 import packageInfo from "../../package.json" assert { type: "json" };
+import { resolvePath } from "./utils.ts";
 
 export const flags = parse(Deno.args, {
   string: ["ogmios-url", "database", "config"],
@@ -50,7 +50,5 @@ export const { config, eventsHandler }: {
   config: Config;
   eventsHandler: (events: MarketplaceEvent[]) => unknown;
 } = await import(
-  flags.config
-    ? resolve(flags.config)
-    : new URL("../config.ts", import.meta.url).pathname
+  resolvePath(flags.config || new URL("../config.ts", import.meta.url))
 );

@@ -1,11 +1,11 @@
 import { DB } from "https://deno.land/x/sqlite@v3.7.0/mod.ts";
-import { resolve } from "https://deno.land/std@0.167.0/path/mod.ts";
 import {
   checkpointToColor,
   fromMergedOutRef,
   fromMergedPoint,
   isEmptyString,
   parseJSONSafe,
+  resolvePath,
   toMergedOutRef,
   toMergedPoint,
 } from "./utils.ts";
@@ -476,6 +476,6 @@ class MarketplaceDB {
 }
 
 export const db = new MarketplaceDB(
-  new DB(resolve(flags.database)),
+  new DB(resolvePath(flags.database)),
   config.startPoint,
 );

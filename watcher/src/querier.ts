@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.167.0/http/server.ts";
 import { serveFile } from "https://deno.land/std@0.167.0/http/file_server.ts";
 import packageInfo from "../../package.json" assert { type: "json" };
-import { resolve } from "https://deno.land/std@0.167.0/path/mod.ts";
 import { parse } from "https://deno.land/std@0.119.0/flags/mod.ts";
 import { DB } from "https://deno.land/x/sqlite@v3.7.0/mod.ts";
+import { resolvePath } from "./utils.ts";
 
 const queryFlags = parse(Deno.args, {
   string: ["database", "port"],
@@ -46,7 +46,7 @@ const salesRoute = new URLPattern({ pathname: "/sales" });
 const salesSummaryRoute = new URLPattern({ pathname: "/salesSummary" });
 const activityRoute = new URLPattern({ pathname: "/activity" });
 
-const db = new DB(resolve(queryFlags.database));
+const db = new DB(resolvePath(queryFlags.database));
 
 // For syntax highlighting in vscode: forbeslindesay.vscode-sql-template-literal
 function sql(s: TemplateStringsArray): string {
@@ -59,7 +59,7 @@ serve((req) => {
   if (dbRoute.test(req.url)) {
     return serveFile(
       req,
-      resolve(queryFlags.database),
+      resolvePath(queryFlags.database),
     );
   } else if (singleListingsRoute.test(req.url)) {
     const policyId: string = singleListingsRoute.exec(req.url)?.pathname.groups

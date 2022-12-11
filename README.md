@@ -144,7 +144,7 @@ import {
   MarketplaceEvent,
   SaleBundleEventData,
   SaleSingleEventData,
-} from "https://deno.land/x/nebula@0.1.0/src/types.ts";
+} from "https://deno.land/x/nebula@0.1.0/watcher/src/types.ts";
 
 
 /** 
