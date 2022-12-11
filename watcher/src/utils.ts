@@ -11,7 +11,7 @@ import {
 } from "../../deps.ts";
 import { dataToAddress } from "../../common/utils.ts";
 import { CheckpointType } from "./types.ts";
-import { isAbsolute, join } from "https://deno.land/std@0.167.0/path/mod.ts";
+import { isAbsolute } from "https://deno.land/std@0.167.0/path/mod.ts";
 
 const lucid = await Lucid.new();
 
@@ -91,10 +91,8 @@ export const checkpointToColor: Record<CheckpointType, string> = {
 };
 
 export function resolvePath(path: string | URL): string {
-  console.log(path);
-  console.log(Deno.cwd());
   if (path instanceof URL) return path.pathname;
   else if (/^(?:[a-z]+:)?\/\//i.test(path)) return path;
   else if (isAbsolute(path)) return path;
-  return join(Deno.cwd(), path);
+  return Deno.cwd() + new URL(`file:///${path}`).pathname;
 }
