@@ -20,7 +20,7 @@ function usage(): string {
 Available options: 
         --ogmios-url        URL to Ogmios instance. e.g. ws://localhost:1337
         --database          Path to database.
-        --config            Path to the config file. Required flag, but if left out the default SpaceBudz config is loaded.
+        --config            URL path to the config file. Required flag, but if left out the default SpaceBudz config is loaded.
         --sync              Writes to the database in less intervals to speed up sync time. Also doesn't trigger events.
         --version           Show the version.
         --help              Show this help text.`;
