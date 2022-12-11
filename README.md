@@ -18,7 +18,7 @@
 1. Import `Contract` and `Lucid` and create royalty/fee token.
 
 ```ts
-import { Contract } from "https://deno.land/x/nebula@0.1.1/contract/mod.ts"
+import { Contract } from "https://deno.land/x/nebula@0.1.2/contract/mod.ts"
 import { Lucid, Blockfrost } from "https://deno.land/x/lucid@0.7.9/mod.ts"
 
 const lucid = await Lucid.new(
@@ -144,7 +144,7 @@ import {
   MarketplaceEvent,
   SaleBundleEventData,
   SaleSingleEventData,
-} from "https://deno.land/x/nebula@0.1.1/watcher/src/types.ts";
+} from "https://deno.land/x/nebula@0.1.2/watcher/src/types.ts";
 
 
 /** 
@@ -238,7 +238,7 @@ export function eventsHandler(events: MarketplaceEvent[]) {
 2. Start the watcher:
 
 ```
-deno run -A https://deno.land/x/nebula@0.1.1/watcher/mod.ts --ogmios-url ws://localhost:1337 --database ./marketplace.sqlite --config ./config.ts
+deno run -A https://deno.land/x/nebula@0.1.2/watcher/mod.ts --ogmios-url ws://localhost:1337 --database ./marketplace.sqlite --config ./config.ts
 ```
 
 <img width="100%" src="./assets/watcher.png" align="center"/>
@@ -248,7 +248,7 @@ deno run -A https://deno.land/x/nebula@0.1.1/watcher/mod.ts --ogmios-url ws://lo
 Run the querier: 
 
 ```
-deno run -A https://deno.land/x/nebula@0.1.1/watcher/querier.ts --database ./marketplace.sqlite
+deno run -A https://deno.land/x/nebula@0.1.2/watcher/querier.ts --database ./marketplace.sqlite
 ```
 
 Runs on port `3000` by default. It hosts the database and allows you to make simple queries. The API will likely be extended and improved over time.
