@@ -14,7 +14,7 @@ import {
   PolicyId,
   TxShelleyCompatible,
 } from "../../deps.ts";
-import { pipe, toOwner } from "./utils.ts";
+import { pipe, toOwner, transformArrayToString } from "./utils.ts";
 import { dataToAssets, unwrapMaybe } from "../../common/utils.ts";
 import { BidOption, TradeAction, TradeDatum } from "../../common/types.ts";
 import {
@@ -90,7 +90,7 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
           data: {
             txHash: outRef.txHash,
             slot: point.slot,
-            nfts,
+            nfts: transformArrayToString(nfts),
             owner,
             lovelace,
           },
@@ -201,7 +201,7 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
         data: {
           txHash: outRef.txHash,
           slot: point.slot,
-          nfts,
+          nfts: transformArrayToString(nfts),
           owner,
           lovelace,
         },

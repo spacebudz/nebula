@@ -83,6 +83,12 @@ export function parseJSONSafe(text?: string | null): Json {
   }
 }
 
+export function transformArrayToString(
+  arr: string[],
+): string | string[] | null | undefined {
+  return arr.length > 1 ? arr : arr[0];
+}
+
 export const checkpointToColor: Record<CheckpointType, string> = {
   Bid: "orange",
   Listing: "blue",
