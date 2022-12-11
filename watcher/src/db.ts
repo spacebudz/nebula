@@ -476,6 +476,6 @@ class MarketplaceDB {
 }
 
 export const db = new MarketplaceDB(
-  new DB(resolvePath(flags.database)),
+  new DB(resolvePath(flags.database).pathname),
   config.startPoint,
 );

@@ -93,9 +93,9 @@ export const checkpointToColor: Record<CheckpointType, string> = {
   Cancel: "orangered",
 };
 
-export function resolvePath(path: string | URL): string {
-  if (path instanceof URL) return path.href;
-  else if (/^(?:[a-z]+:)?\/\//i.test(path)) return path;
-  else if (isAbsolute(path)) return toFileUrl(path).href;
-  return toFileUrl(Deno.cwd() + new URL(`file:///${path}`).pathname).href;
+export function resolvePath(path: string | URL): URL {
+  if (path instanceof URL) return path;
+  else if (/^(?:[a-z]+:)?\/\//i.test(path)) return new URL(path);
+  else if (isAbsolute(path)) return toFileUrl(path);
+  return toFileUrl(Deno.cwd() + new URL(`file:///${path}`).pathname);
 }

@@ -50,5 +50,5 @@ export const { config, eventsHandler }: {
   config: Config;
   eventsHandler: (events: MarketplaceEvent[]) => unknown;
 } = await import(
-  resolvePath(flags.config || new URL("../config.ts", import.meta.url))
+  resolvePath(flags.config || new URL("../config.ts", import.meta.url)).href
 );

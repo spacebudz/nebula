@@ -46,7 +46,7 @@ const salesRoute = new URLPattern({ pathname: "/sales" });
 const salesSummaryRoute = new URLPattern({ pathname: "/salesSummary" });
 const activityRoute = new URLPattern({ pathname: "/activity" });
 
-const db = new DB(resolvePath(queryFlags.database));
+const db = new DB(resolvePath(queryFlags.database).pathname);
 
 // For syntax highlighting in vscode: forbeslindesay.vscode-sql-template-literal
 function sql(s: TemplateStringsArray): string {
@@ -59,7 +59,7 @@ serve((req) => {
   if (dbRoute.test(req.url)) {
     return serveFile(
       req,
-      resolvePath(queryFlags.database),
+      resolvePath(queryFlags.database).pathname,
     );
   } else if (singleListingsRoute.test(req.url)) {
     const policyId: string = singleListingsRoute.exec(req.url)?.pathname.groups
