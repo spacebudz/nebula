@@ -104,9 +104,6 @@ tradeValidate protocolKey (typeKey, traitsKey) label100 royaltyToken datum actio
                                 ref = txInInfoOutRef i
                             in  (txOutValue out, ref)
 
-    txMint :: V.Value
-    txMint = Api.txInfoMint txInfo
-
     checkedPrivateListing :: ListingDetails -> Bool
     checkedPrivateListing ld = case privateListing ld of 
                                 Just owner -> txSignedByAddress txInfo ownValue owner 
@@ -142,7 +139,7 @@ tradeValidate protocolKey (typeKey, traitsKey) label100 royaltyToken datum actio
                                                                             else
                                                                               Left ()
                       in
-                        (case protocolKey of Just key -> any (\Api.TxOut{txOutAddress=Api.Address (Api.PubKeyCredential key') _} -> key == key') (txInfoOutputs txInfo); _ -> True) &&
+                        (case protocolKey of Just key -> any (\output -> case txOutAddress output of Api.Address (Api.PubKeyCredential key') _ -> key == key'; _ -> False) (txInfoOutputs txInfo); _ -> True) &&
                         -- | Check if lovelace or NFT were paid to owner and fees were paid.
                         case paidFee (recipients royaltyInfo) acceptedLovelace of
                           Right remainingLovelace -> case datum of
