@@ -40,7 +40,7 @@ pub type DatumMetadata {
 
 pub type BidOption {
   SpecificValue(Value)
-  SpecificValueWithConstaints(
+  SpecificPolicyIdWithConstaints(
     PolicyId,
     List<ByteArray>,
     List<#(Int, ByteArray)>,
@@ -276,7 +276,7 @@ pub fn paid_buyer(
         payment_datum,
       ))
       
-    SpecificValueWithConstaints(policy_id, types, traits) -> {
+    SpecificPolicyIdWithConstaints(policy_id, types, traits) -> {
       let requested_value =
         value_paid_to_address_with_datum(
           outputs,
