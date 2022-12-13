@@ -173,7 +173,7 @@ pub fn paid_protocol(outputs: List<Output>, protocol_key: Option<PublicKeyHash>)
 }
 
 pub fn paid_fee(reference_inputs: List<Input>, outputs: List<Output>, payment_datum: Data, accepted_lovelace: Int, royalty_token: RoyaltyToken, protocol_key: Option<PublicKeyHash>) -> Option<Int>  {
-    let (royalty_policy_id, royalty_asset_name) = royalty_token
+    let #(royalty_policy_id, royalty_asset_name) = royalty_token
     assert Some(royalty_input) = list.find(reference_inputs, fn(input) {
         value_of(input.output.value, royalty_policy_id, royalty_asset_name) == 1
     })
