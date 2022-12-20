@@ -13,12 +13,12 @@ import {
 } from "./src/types.ts";
 
 export const config: Config = {
-  scriptHash: "0cee3f2b5ee5913be062a0cd940fb6fd2754aca88c231710b3f272ad",
-  bidPolicyId: "188ea8a2dce433e15daab5f18dd46be25ad2ae73d3d071bb744e9d30",
+  scriptHash: "49f3072273af97cb3eedf70318479bd838bcb121d7d42d826799304a",
+  bidPolicyId: "138434e35d556eaefecca3330025e3afccd8566c6af5303da8cca368",
   projects: ["8da99f2c04edd1c54993c74a36e8da8d9985334d9429d881e72e7e41"],
   startPoint: {
-    hash: "6bdfd391f9095544f8b04d998e789df7a2237e3523e797aef714f323cf2e2021",
-    slot: 15067500,
+    hash: "0ac686ccb4900ae8bea9e75a7dbdf09bd306266570e8616d33e2ee5b7ef9b263",
+    slot: 15865789,
   },
 };
 

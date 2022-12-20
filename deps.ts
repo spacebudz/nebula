@@ -12,7 +12,7 @@ export {
   toUnit,
   Tx,
   utf8ToHex,
-} from "https://deno.land/x/lucid@0.7.9/mod.ts";
+} from "https://deno.land/x/lucid@0.8.3/mod.ts";
 export type {
   Address,
   Assets,
@@ -21,7 +21,6 @@ export type {
   Lovelace,
   MintingPolicy,
   OutRef,
-  PlutusData,
   PolicyId,
   Redeemer,
   ScriptHash,
@@ -30,7 +29,7 @@ export type {
   TxHash,
   Unit,
   UTxO,
-} from "https://deno.land/x/lucid@0.7.9/mod.ts";
+} from "https://deno.land/x/lucid@0.8.3/mod.ts";
 
 export {
   createClient,

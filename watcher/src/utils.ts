@@ -1,42 +1,9 @@
-import {
-  Address,
-  C,
-  Constr,
-  getAddressDetails,
-  Json,
-  Lucid,
-  OutRef,
-  PlutusData,
-  Point,
-} from "../../deps.ts";
-import { dataToAddress } from "../../common/utils.ts";
+import { Json, OutRef, Point } from "../../deps.ts";
 import { CheckpointType } from "./types.ts";
 import {
   isAbsolute,
   toFileUrl,
 } from "https://deno.land/std@0.167.0/path/mod.ts";
-
-const lucid = await Lucid.new();
-
-/** Return the payment credential from an address (in PlutusData) as Bech32.  */
-export function toOwner(
-  { address, data }: { address?: Address; data?: Constr<PlutusData> },
-): string {
-  const { paymentCredential } = getAddressDetails(
-    address || dataToAddress(
-      data!,
-      lucid,
-    ),
-  );
-  if (paymentCredential?.type === "Key") {
-    return C.Ed25519KeyHash.from_hex(paymentCredential.hash).to_bech32(
-      "addr_vkh",
-    );
-  } else if (paymentCredential?.type === "Script") {
-    return C.ScriptHash.from_hex(paymentCredential.hash).to_bech32("script");
-  }
-  return "";
-}
 
 export function toMergedOutRef(
   { txHash, outputIndex }: OutRef,

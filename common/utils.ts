@@ -1,14 +1,16 @@
 import {
   Address,
   Assets,
-  Constr,
+  C,
   getAddressDetails,
   Lucid,
-  PlutusData,
   toLabel,
   utf8ToHex,
   UTxO,
 } from "../deps.ts";
+import * as D from "./contract.types.ts";
+
+const lucid = await Lucid.new();
 
 export function idToBud(id: number): string {
   return toLabel(222) + utf8ToHex(`Bud${id}`);
@@ -32,65 +34,88 @@ export function sortDesc(a: UTxO, b: UTxO): number {
   }
 }
 
-export function dataToAddress(
-  plutusData: Constr<PlutusData>,
-  lucid: Lucid,
-): Address {
-  const paymentPart = plutusData.fields[0] as Constr<PlutusData>;
-  const paymentCredential = paymentPart.index === 0
-    ? lucid.utils.keyHashToCredential(paymentPart.fields[0] as string)
-    : lucid.utils.scriptHashToCredential(paymentPart.fields[0] as string);
+export function toOwner(
+  { address, data }: { address?: Address; data?: D.Address },
+): string {
+  const { paymentCredential } = getAddressDetails(
+    address || toAddress(
+      data!,
+      lucid,
+    ),
+  );
+  if (paymentCredential?.type === "Key") {
+    return C.Ed25519KeyHash.from_hex(paymentCredential.hash).to_bech32(
+      "addr_vkh",
+    );
+  } else if (paymentCredential?.type === "Script") {
+    return C.ScriptHash.from_hex(paymentCredential.hash).to_bech32("script");
+  }
+  return "";
+}
 
-  const stakePart = unwrapMaybe(
-    plutusData.fields[1] as Constr<PlutusData>,
-  ) as
-    | Constr<PlutusData>
-    | null;
-  const stakeCredential = stakePart
-    ? (stakePart.fields[0] as Constr<PlutusData>).index === 0
-      ? lucid.utils.keyHashToCredential(
-        (stakePart.fields[0] as Constr<PlutusData>).fields[0] as string,
-      )
-      : lucid.utils.scriptHashToCredential(
-        (stakePart.fields[0] as Constr<PlutusData>).fields[0] as string,
-      )
-    : undefined;
+export function fromAddress(address: Address): D.Address {
+  // We do not support pointer addresses!
 
+  const { paymentCredential, stakeCredential } = getAddressDetails(
+    address,
+  );
+
+  if (!paymentCredential) throw new Error("Not a valid payment address.");
+
+  return {
+    paymentCredential: paymentCredential?.type === "Key"
+      ? {
+        PublicKeyCredential: [paymentCredential.hash],
+      }
+      : { ScriptCredential: [paymentCredential.hash] },
+    stakeCredential: stakeCredential
+      ? {
+        Inline: [
+          stakeCredential.type === "Key"
+            ? {
+              PublicKeyCredential: [stakeCredential.hash],
+            }
+            : { ScriptCredential: [stakeCredential.hash] },
+        ],
+      }
+      : null,
+  };
+}
+
+export function toAddress(address: D.Address, lucid: Lucid): Address {
+  const paymentCredential = (() => {
+    if ("PublicKeyCredential" in address.paymentCredential) {
+      return lucid.utils.keyHashToCredential(
+        address.paymentCredential.PublicKeyCredential[0],
+      );
+    } else {
+      return lucid.utils.scriptHashToCredential(
+        address.paymentCredential.ScriptCredential[0],
+      );
+    }
+  })();
+  const stakeCredential = (() => {
+    if (!address.stakeCredential) return undefined;
+    if ("Inline" in address.stakeCredential) {
+      if ("PublicKeyCredential" in address.stakeCredential.Inline[0]) {
+        return lucid.utils.keyHashToCredential(
+          address.stakeCredential.Inline[0].PublicKeyCredential[0],
+        );
+      } else {
+        return lucid.utils.scriptHashToCredential(
+          address.stakeCredential.Inline[0].ScriptCredential[0],
+        );
+      }
+    } else {
+      return undefined;
+    }
+  })();
   return lucid.utils.credentialToAddress(paymentCredential, stakeCredential);
 }
 
-export function addressToData(address: Address): Constr<PlutusData> {
-  const { paymentCredential, stakeCredential } = getAddressDetails(address);
-  const paymentPart = paymentCredential?.type === "Key"
-    ? new Constr(0, [paymentCredential!.hash])
-    : new Constr(1, [paymentCredential!.hash]);
-
-  const stakePart = stakeCredential
-    ? stakeCredential.type === "Key"
-      ? new Constr(0, [new Constr(0, [stakeCredential!.hash])])
-      : new Constr(0, [new Constr(1, [stakeCredential!.hash])])
-    : null;
-
-  return new Constr(0, [paymentPart, wrapMaybe(stakePart)]);
-}
-
-export function dataToAssets(
-  plutusData: Map<string, Map<string, bigint>>,
-): Assets {
-  const result: Assets = { lovelace: plutusData.get("")?.get("") || 0n };
-
-  for (const [policyId, assets] of plutusData) {
-    if (policyId === "") continue;
-    for (const [assetName, amount] of assets) {
-      result[policyId + assetName] = amount;
-    }
-  }
-  return result;
-}
-
-export function assetsToData(assets: Assets): Map<string, Map<string, bigint>> {
-  const valueMap = new Map<string, Map<string, bigint>>();
-  if (assets.lovelace) valueMap.set("", new Map([["", assets.lovelace]]));
+export function fromAssets(assets: Assets): D.Value {
+  const value = new Map<string, Map<string, bigint>>();
+  if (assets.lovelace) value.set("", new Map([["", assets.lovelace]]));
 
   const units = Object.keys(assets);
   const policies = Array.from(
@@ -109,17 +134,19 @@ export function assetsToData(assets: Assets): Map<string, Map<string, bigint>> {
         assets[unit],
       );
     });
-    valueMap.set(policyId, assetsMap);
+    value.set(policyId, assetsMap);
   });
-  return valueMap;
+  return value;
 }
 
-export function wrapMaybe(data?: PlutusData | null): PlutusData {
-  if (data) return new Constr(0, [data!]);
-  return new Constr(1, []);
-}
+export function toAssets(value: D.Value): Assets {
+  const result: Assets = { lovelace: value.get("")?.get("") || 0n };
 
-export function unwrapMaybe(data: Constr<PlutusData>): PlutusData | null {
-  if (data.index === 0) return data.fields[0];
-  return null;
+  for (const [policyId, assets] of value) {
+    if (policyId === "") continue;
+    for (const [assetName, amount] of assets) {
+      result[policyId + assetName] = amount;
+    }
+  }
+  return result;
 }

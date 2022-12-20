@@ -1,11 +1,6 @@
 import { assertEquals } from "https://deno.land/std@0.145.0/testing/asserts.ts";
 import { Lucid } from "../deps.ts";
-import {
-  addressToData,
-  assetsToData,
-  dataToAddress,
-  dataToAssets,
-} from "./utils.ts";
+import { fromAddress, fromAssets, toAddress, toAssets } from "./utils.ts";
 
 const lucid = await Lucid.new(undefined, "Preview");
 
@@ -17,11 +12,11 @@ Deno.test("Address <> PlutusData", () => {
 
   assertEquals(
     address,
-    dataToAddress(addressToData(address), lucid),
+    toAddress(fromAddress(address), lucid),
   );
   assertEquals(
     address2,
-    dataToAddress(addressToData(address2), lucid),
+    toAddress(fromAddress(address2), lucid),
   );
 });
 
@@ -30,6 +25,6 @@ Deno.test("Assets <> PlutusData", () => {
 
   assertEquals(
     assets,
-    dataToAssets(assetsToData(assets)),
+    toAssets(fromAssets(assets)),
   );
 });

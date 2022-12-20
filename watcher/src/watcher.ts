@@ -1,22 +1,18 @@
 import {
   BlockShelleyCompatible,
   C,
-  Constr,
   Data,
   Datum,
   fromHex,
   getAddressDetails,
   hexToUtf8,
-  Lovelace,
   OutRef,
-  PlutusData,
   Point,
   PolicyId,
   TxShelleyCompatible,
 } from "../../deps.ts";
-import { pipe, toOwner, transformArrayToString } from "./utils.ts";
-import { dataToAssets, unwrapMaybe } from "../../common/utils.ts";
-import { BidOption, TradeAction, TradeDatum } from "../../common/types.ts";
+import { pipe, transformArrayToString } from "./utils.ts";
+import { toAssets, toOwner } from "../../common/utils.ts";
 import {
   BuyEventType,
   CancelBidEventType,
@@ -26,6 +22,7 @@ import {
 } from "./types.ts";
 import { config } from "./flags.ts";
 import { db } from "./db.ts";
+import * as D from "../../common/contract.types.ts";
 
 // deno-lint-ignore no-explicit-any
 function getDatum(tx: TxShelleyCompatible, output: any): Datum | null {
@@ -47,21 +44,22 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
         config.scriptHash
     ) {
       // Check bid
-      const datum = Data.from(getDatum(tx, output)!) as Constr<PlutusData>;
+      const tradeDatum = Data.from<D.TradeDatum>(
+        getDatum(tx, output)!,
+        D.TradeDatum,
+      );
 
-      if (datum.index !== TradeDatum.Bid) continue;
+      if (!("Bid" in tradeDatum)) continue;
 
-      const bidDetails = datum.fields[0] as Constr<PlutusData>;
+      const bidDetails = tradeDatum.Bid[0];
       const owner = toOwner({
-        data: bidDetails.fields[0] as Constr<PlutusData>,
+        data: bidDetails.owner,
       });
       const lovelace = parseInt(output.value.coins.toString());
 
-      const bidOption = bidDetails.fields[1] as Constr<PlutusData>;
-
-      if (bidOption.index === BidOption.SpecificValue) {
-        const nfts = Object.keys(dataToAssets(
-          bidOption.fields[0] as Map<string, Map<string, bigint>>,
+      if ("SpecificValue" in bidDetails.requestedOption) {
+        const nfts = Object.keys(toAssets(
+          bidDetails.requestedOption.SpecificValue[0],
         )).filter((unit) => unit !== "lovelace");
 
         // We only track valid specific bids. We allow combinations of whitelisted project policy ids.
@@ -95,8 +93,11 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
             lovelace,
           },
         }, point);
-      } else if (bidOption.index === BidOption.SpecificPolicyIdOnly) {
-        const policyId = bidOption.fields[0] as PolicyId;
+      } else if (
+        "SpecificSymbolWithConstraints" in bidDetails.requestedOption
+      ) {
+        const policyId: PolicyId =
+          bidDetails.requestedOption.SpecificSymbolWithConstraints[0];
         // We only track valid open bids.
         if (
           !config.projects.some((projectPolicyId) =>
@@ -104,15 +105,17 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
           )
         ) continue;
 
-        const types = (bidOption.fields[1] as string[]).map((bytes) =>
-          hexToUtf8(bytes)
-        );
-        const traits = (bidOption.fields[2] as Constr<PlutusData>[]).map((
-          constr,
-        ) => ({
-          negation: constr.fields[0] < 0n,
-          trait: hexToUtf8(constr.fields[1] as string),
-        }));
+        const types =
+          (bidDetails.requestedOption.SpecificSymbolWithConstraints[1]).map((
+            bytes,
+          ) => hexToUtf8(bytes));
+        const traits =
+          (bidDetails.requestedOption.SpecificSymbolWithConstraints[2]).map((
+            trait,
+          ) => ({
+            negation: trait[0] < 0n,
+            trait: hexToUtf8(trait[1]),
+          }));
 
         const type: MarketplaceEventType = "BidOpen";
 
@@ -151,10 +154,13 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
         config.scriptHash
     ) {
       // Check listing
-      const datum = Data.from(getDatum(tx, output)!) as Constr<PlutusData>;
-      if (datum.index !== TradeDatum.Listing) continue;
+      const tradeDatum = Data.from<D.TradeDatum>(
+        getDatum(tx, output)!,
+        D.TradeDatum,
+      );
+      if (!("Listing" in tradeDatum)) continue;
 
-      const listingDetails = datum.fields[0] as Constr<PlutusData>;
+      const listingDetails = tradeDatum.Listing[0];
 
       const nfts = Object.keys(output.value.assets!).map((unit) =>
         unit.replace(".", "")
@@ -174,17 +180,14 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
         : "ListingSingle";
 
       const owner = toOwner({
-        data: listingDetails.fields[0] as Constr<PlutusData>,
+        data: listingDetails.owner,
       });
       const lovelace = parseInt(
-        (listingDetails.fields[1] as Lovelace).toString(),
+        listingDetails.requestedLovelace.toString(),
       );
-      const privateListing = pipe(
-        unwrapMaybe(
-          listingDetails.fields[2] as Constr<PlutusData>,
-        ),
-        (data: Constr<PlutusData>) => data ? toOwner({ data }) : null,
-      );
+      const privateListing = listingDetails.privateListing
+        ? toOwner({ data: listingDetails.privateListing })
+        : null;
 
       db.addListing({
         outRef,
@@ -228,11 +231,16 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
       outputIndex: tx.body.inputs[index].index,
     };
 
-    const action =
-      (Data.from(redeemer.redeemer) as Constr<PlutusData>)?.index ?? null;
+    const action = (() => {
+      try {
+        return Data.from<D.TradeAction>(redeemer.redeemer, D.TradeAction);
+      } catch (_e) {
+        return null;
+      }
+    })();
 
     switch (action) {
-      case TradeAction.Sell: {
+      case "Sell": {
         const bid = db.getBid(outRef);
         if (!bid) break;
         const type: SellEventType = (() => {
@@ -246,14 +254,12 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
           }
         })();
 
-        const paymentDatum = Data.to(
-          new Constr(0, [
-            new Constr(0, [
-              new Constr(0, [outRef.txHash]),
-              BigInt(outRef.outputIndex),
-            ]),
-          ]),
-        );
+        const paymentDatum = Data.to<D.PaymentDatum>({
+          outRef: {
+            txHash: { hash: outRef.txHash },
+            outputIndex: BigInt(outRef.outputIndex),
+          },
+        }, D.PaymentDatum);
 
         const nfts = bid.policyId
           ? tx.body.outputs.reduce((nfts, utxo) => {
@@ -304,7 +310,7 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
         db.updateCheckpoint("Sale", point);
         break;
       }
-      case TradeAction.Buy: {
+      case "Buy": {
         const listing = db.getListing(outRef);
         if (!listing) break;
         const type: BuyEventType = (() => {
@@ -354,7 +360,7 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
         db.updateCheckpoint("Sale", point);
         break;
       }
-      case TradeAction.Cancel: {
+      case "Cancel": {
         const listing = db.getListing(outRef);
         if (listing) {
           const type: CancelListingEventType = (() => {
