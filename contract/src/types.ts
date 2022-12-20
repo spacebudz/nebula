@@ -29,7 +29,7 @@ export type ContractConfig = {
 };
 
 export type RoyaltyRecipient = {
-  recipient: Address;
+  address: Address;
   /** e.g.: 0.04 (4%) */
   fee: number;
   fixedFee: Lovelace;

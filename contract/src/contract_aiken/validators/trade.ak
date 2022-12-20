@@ -1,12 +1,19 @@
 // WIP!!
-use aiken/context.{
-  Address, AssetName, Datum, DatumHash, Hash, Input, Output, OutputReference,
-  PolicyId, PublicKeyCredential, PublicKeyHash, ScriptContext, ScriptCredential,
-  ScriptPurpose, Spend, Transaction, Value,
+use aiken/transaction.{
+  DatumHash, InlineDatum, Input, Output, OutputReference, ScriptContext,
+  ScriptPurpose, Spend, Transaction,
 }
-use aiken/map.{Map}
+use aiken/transaction/credential.{
+  Address, PublicKeyCredential, ScriptCredential, VerificationKey,
+}
+use aiken/transaction/value.{AssetName, PolicyId, Value}
+use aiken/hash.{Blake2b_224, Blake2b_256, Hash}
+use aiken/assoc_list.{AssocList}
 use aiken/list
 use aiken/bytearray
+
+pub type PublicKeyHash =
+  Hash<Blake2b_224, VerificationKey>
 
 pub type ListingDetails {
   owner: Address,
@@ -31,7 +38,7 @@ pub type RoyaltyRecipient {
 }
 
 pub type Metadata =
-  Map<Data, Data>
+  AssocList<Data, Data>
 
 pub type DatumMetadata {
   metadata: Metadata,
@@ -40,7 +47,7 @@ pub type DatumMetadata {
 
 pub type BidOption {
   SpecificValue(Value)
-  SpecificPolicyIdWithConstaints(
+  SpecificPolicyIdWithConstraints(
     PolicyId,
     List<ByteArray>,
     List<#(Int, ByteArray)>,
@@ -86,13 +93,13 @@ pub fn get_own_input(ctx: ScriptContext) -> Input {
 
 pub fn flatten_value(value: Value) -> List<#(PolicyId, AssetName, Int)> {
   list.foldl(
-    map.to_list(value),
+    assoc_list.to_list(value),
     fn(policies, acc) {
       let #(policy_id, assets) = policies
       list.concat(
         acc,
         list.map(
-          map.to_list(assets),
+          assoc_list.to_list(assets),
           fn(asset) {
             let #(asset_name, amount) = asset
             #(policy_id, asset_name, amount)
@@ -105,9 +112,9 @@ pub fn flatten_value(value: Value) -> List<#(PolicyId, AssetName, Int)> {
 }
 
 pub fn value_of(value: Value, policy_id: PolicyId, asset_name: AssetName) -> Int {
-  when map.get(value, policy_id) is {
+  when assoc_list.get(value, policy_id) is {
     Some(assets) ->
-      when map.get(assets, asset_name) is {
+      when assoc_list.get(assets, asset_name) is {
         Some(amount) -> amount
         None -> 0
       }
@@ -116,7 +123,7 @@ pub fn value_of(value: Value, policy_id: PolicyId, asset_name: AssetName) -> Int
 }
 
 pub fn exclude_lovelace(value: Value) -> Value {
-  map.remove(value, #[])
+  assoc_list.delete(value, #[])
 }
 
 pub fn tx_signed_by_address(
@@ -157,7 +164,7 @@ pub fn value_paid_to_address_with_datum(
   address: Address,
   datum: Data,
 ) -> Value {
-  let datum_option = Datum(datum)
+  let datum_option = InlineDatum(datum)
   when
     list.find(
       outputs,
@@ -165,7 +172,7 @@ pub fn value_paid_to_address_with_datum(
     )
   is {
     Some(output) -> output.value
-    None -> map.new()
+    None -> assoc_list.new()
   }
 }
 
@@ -219,7 +226,7 @@ pub fn paid_protocol(
   when protocol_key is {
     Some(key) ->
       list.any(
-        tx.outputs,
+        outputs,
         fn(output) {
           when output.address.payment_credential is {
             PublicKeyCredential(key_) -> key == key_
@@ -247,7 +254,7 @@ pub fn paid_fee(
         value_of(input.output.value, royalty_policy_id, royalty_asset_name) == 1
       },
     )
-  assert Datum(datum) = royalty_input.output.datum
+  assert InlineDatum(datum) = royalty_input.output.datum
   let royalty_info: RoyaltyInfo = datum
   checked_fee_recipients(
     royalty_info.recipients,
@@ -262,7 +269,7 @@ pub fn paid_fee(
 pub fn paid_buyer(
   reference_inputs: List<Input>,
   outputs: List<Output>,
-  datums: Map<Hash<Data>, Data>,
+  datums: AssocList<Hash<Blake2b_256, Data>, Data>,
   payment_datum: Data,
   bidding_details: BiddingDetails,
   metadata_keys: #(ByteArray, ByteArray),
@@ -276,7 +283,7 @@ pub fn paid_buyer(
         payment_datum,
       ))
       
-    SpecificPolicyIdWithConstaints(policy_id, types, traits) -> {
+    SpecificPolicyIdWithConstraints(policy_id, types, traits) -> {
       let requested_value =
         value_paid_to_address_with_datum(
           outputs,

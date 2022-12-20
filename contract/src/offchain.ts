@@ -1,7 +1,6 @@
 import {
   Address,
   applyParamsToScript,
-  Constr,
   Data,
   Datum,
   fromUnit,
@@ -9,7 +8,6 @@ import {
   Lucid,
   MintingPolicy,
   OutRef,
-  PlutusData,
   PolicyId,
   ScriptHash,
   SpendingValidator,
@@ -20,18 +18,15 @@ import {
   utf8ToHex,
   UTxO,
 } from "../../deps.ts";
-import { BidOption, TradeAction, TradeDatum } from "../../common/types.ts";
 import scripts from "./ghc/scripts.json" assert { type: "json" };
 import {
-  addressToData,
-  assetsToData,
-  dataToAddress,
-  dataToAssets,
+  fromAddress,
+  fromAssets,
   sortDesc,
-  unwrapMaybe,
-  wrapMaybe,
+  toAddress,
+  toAssets,
 } from "../../common/utils.ts";
-import { toAction } from "./utils.ts";
+import * as D from "../../common/contract.types.ts";
 import { ContractConfig, RoyaltyRecipient } from "./types.ts";
 
 export class Contract {
@@ -66,23 +61,24 @@ export class Contract {
 
     const protocolKey = this.lucid.utils.getAddressDetails(
       PROTOCOL_FUND_ADDRESS,
-    ).paymentCredential?.hash;
+    ).paymentCredential?.hash!;
 
     if (this.fundProtocol && !protocolKey) throw "Invalid protocol key!";
 
     this.tradeValidator = {
       type: "PlutusV2",
-      script: applyParamsToScript(
+      script: applyParamsToScript<D.TradeParams>(
         scripts.trade,
-        wrapMaybe(
+        [
           this.fundProtocol ? protocolKey : null,
-        ),
-        new Constr(0, [
-          utf8ToHex(this.config.metadataKeyNames?.type || "type"),
-          utf8ToHex(this.config.metadataKeyNames?.traits || "traits"),
-        ]),
-        toLabel(100),
-        new Constr(0, [policyId, assetName || ""]),
+          [
+            utf8ToHex(this.config.metadataKeyNames?.type || "type"),
+            utf8ToHex(this.config.metadataKeyNames?.traits || "traits"),
+          ],
+          toLabel(100),
+          [policyId, assetName || ""],
+        ],
+        D.TradeParams,
       ),
     };
     this.tradeHash = lucid.utils.validatorToScriptHash(this.tradeValidator);
@@ -111,7 +107,7 @@ export class Contract {
 
     const tx = await this.lucid.newTx()
       .compose(buyOrders)
-      .complete({ nativeUplc: false });
+      .complete();
 
     const txSigned = await tx.sign().complete();
     return txSigned.submit();
@@ -137,7 +133,7 @@ export class Contract {
 
     const tx = await this.lucid.newTx()
       .compose(sellOrders)
-      .complete({ nativeUplc: false });
+      .complete();
 
     const txSigned = await tx.sign().complete();
     return txSigned.submit();
@@ -149,9 +145,10 @@ export class Contract {
     privateListing?: Address | null,
   ): Promise<TxHash> {
     const ownerAddress = await this.lucid.wallet.address();
-    const { stakeCredential } = this.lucid.utils.getAddressDetails(
-      ownerAddress,
-    );
+    const { stakeCredential } = this.lucid.utils
+      .getAddressDetails(
+        ownerAddress,
+      );
 
     const adjustedTradeAddress = stakeCredential
       ? this.lucid.utils.credentialToAddress(
@@ -160,18 +157,18 @@ export class Contract {
       )
       : this.tradeAddress;
 
-    const listingDatum = Data.to(
-      new Constr(TradeDatum.Listing, [
-        new Constr(0, [
-          addressToData(ownerAddress),
-          lovelace,
-          wrapMaybe(privateListing ? addressToData(privateListing) : null),
-        ]),
-      ]),
-    );
+    const tradeDatum: D.TradeDatum = {
+      Listing: [
+        {
+          owner: fromAddress(ownerAddress),
+          requestedLovelace: lovelace,
+          privateListing: privateListing ? fromAddress(privateListing) : null,
+        },
+      ],
+    };
 
     const tx = await this.lucid.newTx().payToContract(adjustedTradeAddress, {
-      inline: listingDatum,
+      inline: Data.to<D.TradeDatum>(tradeDatum, D.TradeDatum),
     }, { [toUnit(this.config.policyId, assetName)]: 1n })
       .complete();
 
@@ -184,23 +181,24 @@ export class Contract {
     lovelace: Lovelace,
     privateListing?: Address | null,
   ): Promise<TxHash> {
-    const newDatum = Data.from(await this.lucid.datumOf(listingUtxo)) as Constr<
-      PlutusData
-    >;
-    if (newDatum.index !== TradeDatum.Listing) {
+    const tradeDatum = await this.lucid.datumOf<D.TradeDatum>(
+      listingUtxo,
+      D.TradeDatum,
+    );
+    if (!("Listing" in tradeDatum)) {
       throw new Error("Not a listing UTxO");
     }
-    const listingDetails = newDatum.fields[0] as Constr<PlutusData>;
+    const listingDetails = tradeDatum.Listing;
 
-    const owner: Address = dataToAddress(
-      listingDetails.fields[0] as Constr<PlutusData>,
+    const owner: Address = toAddress(
+      listingDetails[0].owner,
       this.lucid,
     );
 
-    listingDetails.fields[1] = lovelace;
-    listingDetails.fields[2] = wrapMaybe(
-      privateListing ? addressToData(privateListing) : null,
-    );
+    listingDetails[0].requestedLovelace = lovelace;
+    listingDetails[0].privateListing = privateListing
+      ? fromAddress(privateListing)
+      : null;
 
     const address: Address = await this.lucid.wallet.address();
 
@@ -209,13 +207,16 @@ export class Contract {
     const refScripts = await this.getDeployedScripts();
 
     const tx = await this.lucid.newTx()
-      .collectFrom([listingUtxo], toAction(TradeAction.Cancel))
+      .collectFrom(
+        [listingUtxo],
+        Data.to<D.TradeAction>("Cancel", D.TradeAction),
+      )
       .payToContract(listingUtxo.address, {
-        inline: Data.to(newDatum),
+        inline: Data.to<D.TradeDatum>(tradeDatum, D.TradeDatum),
       }, listingUtxo.assets)
       .addSigner(owner)
       .readFrom([refScripts.trade])
-      .complete({ nativeUplc: false });
+      .complete();
 
     const txSigned = await tx.sign().complete();
     return txSigned.submit();
@@ -235,23 +236,23 @@ export class Contract {
       )
       : this.tradeAddress;
 
-    const biddingDatum = Data.to(
-      new Constr(TradeDatum.Bid, [
-        new Constr(0, [
-          addressToData(ownerAddress),
-          new Constr(0, [
-            assetsToData({ [toUnit(this.config.policyId, assetName)]: 1n }),
-          ]),
-        ]),
-      ]),
-    );
+    const biddingDatum: D.TradeDatum = {
+      Bid: [{
+        owner: fromAddress(ownerAddress),
+        requestedOption: {
+          SpecificValue: [
+            fromAssets({ [toUnit(this.config.policyId, assetName)]: 1n }),
+          ],
+        },
+      }],
+    };
 
     const tx = await this.lucid.newTx()
       .mintAssets({
         [toUnit(this.mintPolicyId, utf8ToHex("Bid") + assetName)]: 1n,
       })
       .payToContract(adjustedTradeAddress, {
-        inline: biddingDatum,
+        inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
       }, {
         lovelace,
         [toUnit(this.mintPolicyId, utf8ToHex("Bid") + assetName)]: 1n,
@@ -284,29 +285,29 @@ export class Contract {
       )
       : this.tradeAddress;
 
-    const biddingDatum = Data.to(
-      new Constr(TradeDatum.Bid, [
-        new Constr(0, [
-          addressToData(ownerAddress),
-          new Constr(1, [
+    const biddingDatum: D.TradeDatum = {
+      Bid: [{
+        owner: fromAddress(ownerAddress),
+        requestedOption: {
+          SpecificSymbolWithConstraints: [
             this.config.policyId,
             constraints?.types ? constraints.types.map(utf8ToHex) : [],
             constraints?.traits
-              ? constraints.traits.map(({ negation, trait }) =>
-                new Constr(0, [negation ? -1n : 0n, utf8ToHex(trait)])
-              )
+              ? constraints.traits.map((
+                { negation, trait },
+              ) => [negation ? -1n : 0n, utf8ToHex(trait)])
               : [],
-          ]),
-        ]),
-      ]),
-    );
+          ],
+        },
+      }],
+    };
 
     const tx = await this.lucid.newTx()
       .mintAssets({
         [toUnit(this.mintPolicyId, utf8ToHex("OpenBid"))]: 1n,
       })
       .payToContract(adjustedTradeAddress, {
-        inline: biddingDatum,
+        inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
       }, {
         lovelace,
         [toUnit(this.mintPolicyId, utf8ToHex("OpenBid"))]: 1n,
@@ -320,18 +321,15 @@ export class Contract {
   }
 
   async changeBid(bidUtxo: UTxO, lovelace: Lovelace): Promise<TxHash> {
-    const datum = Data.from(await this.lucid.datumOf(bidUtxo)) as Constr<
-      PlutusData
-    >;
-    if (datum.index !== TradeDatum.Bid) {
+    const tradeDatum = await this.lucid.datumOf<D.TradeDatum>(
+      bidUtxo,
+      D.TradeDatum,
+    );
+    if (!("Bid" in tradeDatum)) {
       throw new Error("Not a bidding UTxO");
     }
-    const bidDetails = datum.fields[0] as Constr<PlutusData>;
 
-    const owner: Address = dataToAddress(
-      bidDetails.fields[0] as Constr<PlutusData>,
-      this.lucid,
-    );
+    const owner: Address = toAddress(tradeDatum.Bid[0].owner, this.lucid);
 
     const address: Address = await this.lucid.wallet.address();
 
@@ -341,13 +339,13 @@ export class Contract {
 
     const tx = await this.lucid.newTx().collectFrom(
       [bidUtxo],
-      toAction(TradeAction.Cancel),
+      Data.to<D.TradeAction>("Cancel", D.TradeAction),
     ).payToContract(bidUtxo.address, {
       inline: bidUtxo.datum!,
     }, { ...bidUtxo.assets, lovelace })
       .addSigner(owner)
       .readFrom([refScripts.trade])
-      .complete({ nativeUplc: false });
+      .complete();
 
     const txSigned = await tx.sign().complete();
     return txSigned.submit();
@@ -357,7 +355,7 @@ export class Contract {
     const tx = await this.lucid.newTx().compose(
       await this._cancelListing(listingUtxo),
     )
-      .complete({ nativeUplc: false });
+      .complete();
 
     const txSigned = await tx.sign().complete();
     return txSigned.submit();
@@ -365,7 +363,7 @@ export class Contract {
 
   async cancelBid(bidUtxo: UTxO): Promise<TxHash> {
     const tx = await this.lucid.newTx().compose(await this._cancelBid(bidUtxo))
-      .complete({ nativeUplc: false });
+      .complete();
 
     const txSigned = await tx.sign().complete();
     return txSigned.submit();
@@ -379,7 +377,7 @@ export class Contract {
     const tx = await this.lucid.newTx()
       .compose(await this._cancelListing(listingUtxo))
       .compose(await this._sell(bidUtxo, assetName))
-      .complete({ nativeUplc: false });
+      .complete();
 
     const txSigned = await tx.sign().complete();
     return txSigned.submit();
@@ -392,7 +390,7 @@ export class Contract {
     const tx = await this.lucid.newTx()
       .compose(await this._cancelBid(bidUtxo))
       .compose(await this._buy(listingUtxo))
-      .complete({ nativeUplc: false });
+      .complete();
 
     const txSigned = await tx.sign().complete();
     return txSigned.submit();
@@ -455,14 +453,15 @@ export class Contract {
 
     const royaltyMintingPolicy: MintingPolicy = {
       type: "PlutusV2",
-      script: applyParamsToScript(
+      script: applyParamsToScript<[D.OutRef]>(
         scripts.oneShot,
-        new Constr(0, [
-          new Constr(0, [
-            utxo.txHash,
-          ]),
-          BigInt(utxo.outputIndex),
-        ]),
+        [
+          {
+            txHash: { hash: utxo.txHash },
+            outputIndex: BigInt(utxo.outputIndex),
+          },
+        ],
+        D.OutRef,
       ),
     };
 
@@ -472,20 +471,14 @@ export class Contract {
 
     const royaltyUnit = toUnit(royaltyPolicyId, utf8ToHex("Royalty"), 500);
 
-    const royaltyDatum = Data.to(
-      new Constr(0, [
-        royaltyRecipients.map((r) =>
-          new Constr(0, [
-            addressToData(
-              r.recipient,
-            ),
-            BigInt(Math.floor(1 / (r.fee / 10))),
-            r.fixedFee,
-          ])
-        ),
-        minAda,
-      ]),
-    );
+    const royaltyInfo: D.RoyaltyInfo = {
+      recipients: royaltyRecipients.map((recipient) => ({
+        address: fromAddress(recipient.address),
+        fee: BigInt(Math.floor(1 / (recipient.fee / 10))),
+        fixedFee: recipient.fixedFee,
+      })),
+      minAda,
+    };
 
     const tx = await lucid.newTx()
       .collectFrom([utxo], Data.empty())
@@ -493,7 +486,7 @@ export class Contract {
         [royaltyUnit]: 1n,
       }, Data.empty()).payToAddressWithData(
         ownersAddress,
-        { inline: royaltyDatum },
+        { inline: Data.to<D.RoyaltyInfo>(royaltyInfo, D.RoyaltyInfo) },
         { [royaltyUnit]: 1n },
       )
       .validFrom(lucid.utils.slotToUnixTime(1000))
@@ -536,14 +529,17 @@ export class Contract {
     return txSigned.submit();
   }
 
-  /** Return the UTxO the royalty token is locked in. */
-  async getRoyalty(): Promise<UTxO> {
+  /** Return the datum of the UTxO the royalty token is locked in. */
+  async getRoyalty(): Promise<{ utxo: UTxO; royaltyInfo: D.RoyaltyInfo }> {
     const utxo = await this.lucid.utxoByUnit(
       this.config.royaltyToken,
     );
     if (!utxo) throw new Error("Royalty info not found.");
-    await this.lucid.datumOf(utxo);
-    return utxo;
+
+    return {
+      utxo,
+      royaltyInfo: await this.lucid.datumOf<D.RoyaltyInfo>(utxo, D.RoyaltyInfo),
+    };
   }
 
   async getDeployedScripts(): Promise<{ trade: UTxO }> {
@@ -589,26 +585,20 @@ export class Contract {
 
     if (!royaltyUtxo) throw new Error("NoUTxOError");
 
-    const royaltyDatum = Data.to(
-      new Constr(0, [
-        royaltyRecipients.map((r) =>
-          new Constr(0, [
-            addressToData(
-              r.recipient,
-            ),
-            BigInt(Math.floor(1 / (r.fee / 10))),
-            r.fixedFee,
-          ])
-        ),
-        minAda,
-      ]),
-    );
+    const royaltyInfo: D.RoyaltyInfo = {
+      recipients: royaltyRecipients.map((recipient) => ({
+        address: fromAddress(recipient.address),
+        fee: BigInt(Math.floor(1 / (recipient.fee / 10))),
+        fixedFee: recipient.fixedFee,
+      })),
+      minAda,
+    };
 
     const tx = await this.lucid.newTx()
       .collectFrom([royaltyUtxo])
       .payToAddressWithData(
         ownerAddress,
-        { inline: royaltyDatum },
+        { inline: Data.to<D.RoyaltyInfo>(royaltyInfo, D.RoyaltyInfo) },
         royaltyUtxo.assets,
       )
       .attachSpendingValidator(ownersScript)
@@ -620,17 +610,14 @@ export class Contract {
   }
 
   private async _cancelListing(listingUtxo: UTxO): Promise<Tx> {
-    const datum = Data.from(await this.lucid.datumOf(listingUtxo)) as Constr<
-      PlutusData
-    >;
-    if (datum.index !== TradeDatum.Listing) {
+    const tradeDatum = await this.lucid.datumOf<D.TradeDatum>(
+      listingUtxo,
+      D.TradeDatum,
+    );
+    if (!("Listing" in tradeDatum)) {
       throw new Error("Not a listing UTxO");
     }
-    const listingDetails = datum.fields[0] as Constr<PlutusData>;
-    const owner: Address = dataToAddress(
-      listingDetails.fields[0] as Constr<PlutusData>,
-      this.lucid,
-    );
+    const owner: Address = toAddress(tradeDatum.Listing[0].owner, this.lucid);
 
     const address: Address = await this.lucid.wallet.address();
 
@@ -640,7 +627,7 @@ export class Contract {
 
     return this.lucid.newTx().collectFrom(
       [listingUtxo],
-      toAction(TradeAction.Cancel),
+      Data.to<D.TradeAction>("Cancel", D.TradeAction),
     )
       .addSigner(owner)
       .readFrom([refScripts.trade]);
@@ -650,14 +637,15 @@ export class Contract {
     bidUtxo: UTxO,
     assetName?: string,
   ): Promise<Tx> {
-    const datum = Data.from(await this.lucid.datumOf(bidUtxo)) as Constr<
-      PlutusData
-    >;
-    if (datum.index !== TradeDatum.Bid) {
+    const tradeDatum = await this.lucid.datumOf<D.TradeDatum>(
+      bidUtxo,
+      D.TradeDatum,
+    );
+    if (!("Bid" in tradeDatum)) {
       throw new Error("Not a bidding UTxO");
     }
 
-    const bidDetails = datum.fields[0] as Constr<PlutusData>;
+    const bidDetails = tradeDatum.Bid[0];
 
     const { lovelace } = bidUtxo.assets;
     const bidToken = Object.keys(bidUtxo.assets).find((unit) =>
@@ -665,32 +653,31 @@ export class Contract {
     );
     if (!bidToken) throw new Error("No bid token found.");
 
-    const owner: Address = dataToAddress(
-      bidDetails.fields[0] as Constr<PlutusData>,
-      this.lucid,
-    );
-
-    const assetsRequest = bidDetails.fields[1] as Constr<PlutusData>;
+    const owner: Address = toAddress(bidDetails.owner, this.lucid);
 
     const { requestedAssets, refNFT } = (() => {
-      if (assetsRequest.index === BidOption.SpecificValue) {
+      if ("SpecificValue" in bidDetails.requestedOption) {
         return {
-          requestedAssets: dataToAssets(
-            assetsRequest.fields[0] as Map<string, Map<string, bigint>>,
+          requestedAssets: toAssets(
+            bidDetails.requestedOption.SpecificValue[0],
           ),
           refNFT: null,
         };
       } else if (
-        assetsRequest.index === BidOption.SpecificPolicyIdOnly && assetName
+        "SpecificSymbolWithConstraints" in bidDetails.requestedOption &&
+        assetName
       ) {
-        const policyId = assetsRequest.fields[0] as PolicyId;
+        const policyId: PolicyId =
+          bidDetails.requestedOption.SpecificSymbolWithConstraints[0];
         const refNFT = toUnit(
           policyId,
           fromUnit(toUnit(policyId, assetName)).name,
           100,
         );
-        const types = assetsRequest.fields[1] as PlutusData[];
-        const traits = assetsRequest.fields[2] as PlutusData[];
+        const types =
+          bidDetails.requestedOption.SpecificSymbolWithConstraints[1];
+        const traits =
+          bidDetails.requestedOption.SpecificSymbolWithConstraints[2];
 
         return {
           requestedAssets: {
@@ -702,37 +689,41 @@ export class Contract {
       throw new Error("No variant matched.");
     })();
 
-    const paymentDatum = Data.to(
-      new Constr(0, [
-        new Constr(0, [
-          new Constr(0, [bidUtxo.txHash]),
-          BigInt(bidUtxo.outputIndex),
-        ]),
-      ]),
-    );
+    const paymentDatum = Data.to<D.PaymentDatum>({
+      outRef: {
+        txHash: { hash: bidUtxo.txHash },
+        outputIndex: BigInt(bidUtxo.outputIndex),
+      },
+    }, D.PaymentDatum);
 
     const refScripts = await this.getDeployedScripts();
 
     return this.lucid.newTx().collectFrom(
       [bidUtxo],
-      toAction(TradeAction.Sell),
+      Data.to<D.TradeAction>("Sell", D.TradeAction),
     )
-      .applyIf(!!refNFT, async (thisTx) => {
-        const refUtxo = await this.lucid.utxoByUnit(refNFT!);
-        if (!refUtxo) throw new Error("This NFT doesn't support CIP-0068");
-        thisTx.readFrom([refUtxo]);
-      })
-      .apply((thisTx) =>
-        this._payFee(
-          thisTx,
+      .compose(
+        refNFT
+          ? await (async () => {
+            const refUtxo = await this.lucid.utxoByUnit(refNFT!);
+            if (!refUtxo) throw new Error("This NFT doesn't support CIP-0068");
+            return this.lucid.newTx().readFrom([refUtxo]);
+          })()
+          : null,
+      )
+      .compose(
+        (await this._payFee(
           lovelace,
           paymentDatum,
-        )
-      ).payToAddressWithData(owner, { inline: paymentDatum }, requestedAssets)
+        )).tx,
+      ).payToAddressWithData(owner, {
+        inline: paymentDatum,
+      }, requestedAssets)
       .mintAssets({ [bidToken]: -1n })
-      .applyIf(
-        this.fundProtocol,
-        (thisTx) => thisTx.payToAddress(PROTOCOL_FUND_ADDRESS, {}),
+      .compose(
+        this.fundProtocol
+          ? this.lucid.newTx().payToAddress(PROTOCOL_FUND_ADDRESS, {})
+          : null,
       )
       .validFrom(this.lucid.utils.slotToUnixTime(1000))
       .readFrom([refScripts.trade])
@@ -740,17 +731,14 @@ export class Contract {
   }
 
   private async _cancelBid(bidUtxo: UTxO): Promise<Tx> {
-    const datum = Data.from(await this.lucid.datumOf(bidUtxo)) as Constr<
-      PlutusData
-    >;
-    if (datum.index !== TradeDatum.Bid) {
+    const tradeDatum = await this.lucid.datumOf<D.TradeDatum>(
+      bidUtxo,
+      D.TradeDatum,
+    );
+    if (!("Bid" in tradeDatum)) {
       throw new Error("Not a bidding UTxO");
     }
-    const bidDetails = datum.fields[0] as Constr<PlutusData>;
-    const owner: Address = dataToAddress(
-      bidDetails.fields[0] as Constr<PlutusData>,
-      this.lucid,
-    );
+    const owner: Address = toAddress(tradeDatum.Bid[0].owner, this.lucid);
 
     const address: Address = await this.lucid.wallet.address();
 
@@ -764,7 +752,7 @@ export class Contract {
 
     return this.lucid.newTx().collectFrom(
       [bidUtxo],
-      toAction(TradeAction.Cancel),
+      Data.to<D.TradeAction>("Cancel", D.TradeAction),
     )
       .mintAssets({ [bidToken]: -1n })
       .validFrom(this.lucid.utils.slotToUnixTime(1000))
@@ -774,82 +762,76 @@ export class Contract {
   }
 
   private async _buy(listingUtxo: UTxO): Promise<Tx> {
-    const datum = Data.from(await this.lucid.datumOf(listingUtxo)) as Constr<
-      PlutusData
-    >;
-    if (datum.index !== TradeDatum.Listing) {
+    const tradeDatum = await this.lucid.datumOf<D.TradeDatum>(
+      listingUtxo,
+      D.TradeDatum,
+    );
+    if (!("Listing" in tradeDatum)) {
       throw new Error("Not a listing UTxO");
     }
-    const listingDetails = datum.fields[0] as Constr<PlutusData>;
 
-    const owner: Address = dataToAddress(
-      listingDetails.fields[0] as Constr<PlutusData>,
-      this.lucid,
-    );
-    const requestedLovelace: Lovelace = listingDetails.fields[1] as Lovelace;
-    const privateListing = unwrapMaybe(
-      listingDetails.fields[2] as Constr<PlutusData>,
-    ) as Constr<PlutusData> | null;
+    const owner: Address = toAddress(tradeDatum.Listing[0].owner, this.lucid);
+    const requestedLovelace: Lovelace = tradeDatum.Listing[0].requestedLovelace;
+    const privateListing = tradeDatum.Listing[0].privateListing;
 
-    const paymentDatum = Data.to(
-      new Constr(0, [
-        new Constr(0, [
-          new Constr(0, [listingUtxo.txHash]),
-          BigInt(listingUtxo.outputIndex),
-        ]),
-      ]),
-    );
+    const paymentDatum = Data.to<D.PaymentDatum>({
+      outRef: {
+        txHash: { hash: listingUtxo.txHash },
+        outputIndex: BigInt(listingUtxo.outputIndex),
+      },
+    }, D.PaymentDatum);
 
     const refScripts = await this.getDeployedScripts();
 
     return this.lucid.newTx().collectFrom(
       [listingUtxo],
-      toAction(TradeAction.Buy),
+      Data.to<D.TradeAction>("Buy", D.TradeAction),
     )
-      .apply(async (thisTx) => {
-        const remainingLovelace = await this._payFee(
-          thisTx,
-          requestedLovelace,
-          paymentDatum,
-        );
-        thisTx.payToAddressWithData(owner, { inline: paymentDatum }, {
-          lovelace: remainingLovelace,
-        });
-      })
-      .applyIf(!!privateListing, (thisTx) =>
-        thisTx.addSigner(
-          dataToAddress(privateListing!, this.lucid),
-        ))
-      .applyIf(
-        this.fundProtocol,
-        (thisTx) => thisTx.payToAddress(PROTOCOL_FUND_ADDRESS, {}),
+      .compose(
+        await (async () => {
+          const { tx, remainingLovelace } = await this._payFee(
+            requestedLovelace,
+            paymentDatum,
+          );
+          return tx.payToAddressWithData(owner, { inline: paymentDatum }, {
+            lovelace: remainingLovelace,
+          });
+        })(),
+      )
+      .compose(
+        privateListing
+          ? this.lucid.newTx().addSigner(
+            toAddress(privateListing!, this.lucid),
+          )
+          : null,
+      )
+      .compose(
+        this.fundProtocol
+          ? this.lucid.newTx().payToAddress(PROTOCOL_FUND_ADDRESS, {})
+          : null,
       )
       .readFrom([refScripts.trade]);
   }
 
   private async _payFee(
-    thisTx: Tx,
     lovelace: Lovelace,
     paymentDatum: Datum,
-  ): Promise<Lovelace> {
-    const royaltyInfo = await this.getRoyalty();
+  ): Promise<{ tx: Tx; remainingLovelace: Lovelace }> {
+    const tx = this.lucid.newTx();
+
+    const { utxo, royaltyInfo } = await this.getRoyalty();
     let remainingLovelace = lovelace;
 
-    const datum = Data.from(await this.lucid.datumOf(royaltyInfo)) as Constr<
-      PlutusData
-    >;
-    if (datum.index !== 0) throw new Error("Invalid royalty info.");
-
-    const recipients = datum.fields[0] as [Constr<PlutusData>];
-    const minAda = datum.fields[1] as Lovelace;
+    const recipients = royaltyInfo.recipients;
+    const minAda = royaltyInfo.minAda;
 
     for (const recipient of recipients) {
-      const address: Address = dataToAddress(
-        recipient.fields[0] as Constr<PlutusData>,
+      const address: Address = toAddress(
+        recipient.address,
         this.lucid,
       );
-      const fee = recipient.fields[1] as bigint;
-      const fixedFee = recipient.fields[2] as Lovelace;
+      const fee = recipient.fee;
+      const fixedFee = recipient.fixedFee;
 
       const feeToPay = (lovelace * 10n) / fee;
       const adjustedFee = feeToPay < minAda ? fixedFee : feeToPay;
@@ -859,14 +841,14 @@ export class Contract {
         throw new Error("No lovelace left for recipient.");
       }
 
-      thisTx.payToAddressWithData(address, { inline: paymentDatum }, {
+      tx.payToAddressWithData(address, { inline: paymentDatum }, {
         lovelace: adjustedFee,
       });
     }
 
-    thisTx.readFrom([royaltyInfo]);
+    tx.readFrom([utxo]);
 
-    return remainingLovelace;
+    return { tx, remainingLovelace };
   }
 }
 
