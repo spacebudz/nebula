@@ -1,16 +1,17 @@
+use aiken/assoc_list.{AssocList}
+use aiken/builtin
+use aiken/bytearray
+use aiken/hash.{Blake2b_224, Blake2b_256, Hash}
+use aiken/list
 // WIP!!
 use aiken/transaction.{
-  DatumHash, InlineDatum, Input, Output, OutputReference, ScriptContext,
+  DatumHash, InlineDatum, Input, NoDatum, Output, OutputReference, ScriptContext,
   ScriptPurpose, Spend, Transaction,
 }
 use aiken/transaction/credential.{
   Address, PublicKeyCredential, ScriptCredential, VerificationKey,
 }
 use aiken/transaction/value.{AssetName, PolicyId, Value}
-use aiken/hash.{Blake2b_224, Blake2b_256, Hash}
-use aiken/assoc_list.{AssocList}
-use aiken/list
-use aiken/bytearray
 
 pub type PublicKeyHash =
   Hash<Blake2b_224, VerificationKey>
@@ -132,7 +133,7 @@ pub fn tx_signed_by_address(
   value: Value,
 ) -> Bool {
   when owner.payment_credential is {
-    PublicKeyCredential(keyhash) -> list.is_elem(tx.extra_signatories, keyhash)
+    PublicKeyCredential(keyhash) -> list.has(tx.extra_signatories, keyhash)
     ScriptCredential(scripthash) -> {
       let mint = tx.mint
       when
@@ -196,22 +197,22 @@ pub fn checked_fee_recipients(
         }
       let new_lovelace = remaining_lovelace - adjusted_fee
       if
-          lovelace_of(
-          value_paid_to_address_with_datum(
-            outputs,
-            fee_recipient.address,
-            payment_datum,
-          ))
-           >= adjusted_fee && new_lovelace > 0
-        {
-        checked_fee_recipients(
+      lovelace_of(
+      value_paid_to_address_with_datum(
         outputs,
-        remaining_recipients,
+        fee_recipient.address,
         payment_datum,
-        min_ada,
-        accepted_lovelace,
-        new_lovelace,
-      )
+      ))
+       >= adjusted_fee && new_lovelace > 0{
+      
+        checked_fee_recipients(
+          outputs,
+          remaining_recipients,
+          payment_datum,
+          min_ada,
+          accepted_lovelace,
+          new_lovelace,
+        )
       } else {
         None
       }
@@ -257,9 +258,9 @@ pub fn paid_fee(
   assert InlineDatum(datum) = royalty_input.output.datum
   let royalty_info: RoyaltyInfo = datum
   checked_fee_recipients(
+    outputs,
     royalty_info.recipients,
     payment_datum,
-    outputs,
     royalty_info.min_ada,
     accepted_lovelace,
     accepted_lovelace,
@@ -272,7 +273,7 @@ pub fn paid_buyer(
   datums: AssocList<Hash<Blake2b_256, Data>, Data>,
   payment_datum: Data,
   bidding_details: BiddingDetails,
-  metadata_keys: #(ByteArray, ByteArray),
+  metadata_keys: #(Data, Data),
 ) -> Bool {
   when bidding_details.requested_option is {
     SpecificValue(requested_value) ->
@@ -290,7 +291,7 @@ pub fn paid_buyer(
           bidding_details.owner,
           payment_datum,
         )
-      let #(sell_policy_id, sell_asset_name, _) =
+      assert Some(#(sell_policy_id, sell_asset_name, _)) =
         list.find(
           flatten_value(requested_value),
           fn(asset) {
@@ -298,7 +299,7 @@ pub fn paid_buyer(
             p == policy_id
           },
         )
-      let metadata_input =
+      assert Some(metadata_input) =
         list.find(
           reference_inputs,
           fn(input) {
@@ -312,39 +313,42 @@ pub fn paid_buyer(
             ) == 1
           },
         )
-      let datum_metadata: DatumMetadata = when metadata_input.datum is {
-        NoDatum -> todo
+      let datum_metadata: DatumMetadata = when metadata_input.output.datum is {
+        NoDatum -> error
         DatumHash(h) -> {
-          assert Some(datum) = map.get(datums, h)
+          assert Some(datum) = assoc_list.get(datums, h)
           datum
         }
-        Datum(datum) -> datum
+        InlineDatum(datum) -> datum
       }
       let #(type_key, traits_key) = metadata_keys
       let metadata_type: ByteArray = {
-        assert Some(t) = map.get(datum_metadata, type_key)
-        t
+        assert Some(t) = assoc_list.get(datum_metadata.metadata, type_key)
+        builtin.un_b_data(t)
       }
       let metadata_traits: List<ByteArray> = {
-        assert Some(t) = map.get(datum_metadata, traits_key)
-        t
+        assert Some(t) = assoc_list.get(datum_metadata.metadata, traits_key)
+        list.map(builtin.un_list_data(t), fn(d) { builtin.un_b_data(d) })
       }
       let has_type = when types is {
         [] -> True
         l -> list.any(l, fn(requested_type) { requested_type == metadata_type })
       }
-      let has_traits =
-        list.all(
-          traits,
-          fn(requested_trait) {
-            let #(negation, trait) = requested_trait
-            if negation < 0 {
-              !list.any(metadata_traits, fn(m_trait) { m_trait == trait })
-            } else {
-              list.any(metadata_traits, fn(m_trait) { m_trait == trait })
-            }
-          },
-        )
+      let has_traits = when traits is {
+        [] -> True
+        l ->
+          list.all(
+            l,
+            fn(requested_trait) {
+              let #(negation, trait) = requested_trait
+              if negation < 0 {
+                !list.any(metadata_traits, fn(m_trait) { m_trait == trait })
+              } else {
+                list.any(metadata_traits, fn(m_trait) { m_trait == trait })
+              }
+            },
+          )
+      }
       has_type && has_traits && policy_id == sell_policy_id
     }
   }
@@ -357,13 +361,17 @@ pub fn paid_seller(
   remaining_lovelace: Int,
 ) -> Bool {
   lovelace_of(
-  value_paid_to_address_with_datum(outputs, listing_details.owner, datum))
+  value_paid_to_address_with_datum(
+    outputs,
+    listing_details.owner,
+    payment_datum,
+  ))
    >= remaining_lovelace
 }
 
 pub fn spend(
   protocol_key: Option<PublicKeyHash>,
-  metadata_keys: #(ByteArray, ByteArray),
+  metadata_keys: #(Data, Data),
   royalty_token: RoyaltyToken,
   datum: TradeDatum,
   action: TradeAction,
@@ -388,6 +396,7 @@ pub fn spend(
           payment_datum,
           accepted_lovelace,
           royalty_token,
+          protocol_key,
         )
       paid_protocol(outputs, protocol_key) && paid_buyer(
         reference_inputs,

@@ -1,3 +1,4 @@
+use aiken/builtin
 use aiken/hash.{Blake2b_224, Hash}
 
 /// A general structure for representing an on-chain `Credential`.
@@ -31,10 +32,23 @@ pub type Referenced<a> {
 }
 
 pub type VerificationKey =
-  Nil
+  ByteArray
 
 pub type Script =
-  Nil
+  ByteArray
+
+pub type Signature =
+  ByteArray
+
+/// Verify an Ed25519 signature using the given verification key.
+/// Returns `True` when the signature is valid.
+pub fn verify_signature(
+  key: VerificationKey,
+  msg: ByteArray,
+  sig: Signature,
+) -> Bool {
+  builtin.verify_ed25519_signature(key, msg, sig)
+}
 
 /// A `StakeCredential` represents the delegation and rewards withdrawal conditions
 /// associated with some stake address / account.
