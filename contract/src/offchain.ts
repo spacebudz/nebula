@@ -3,6 +3,7 @@ import {
   applyParamsToScript,
   Data,
   Datum,
+  fromText,
   fromUnit,
   Lovelace,
   Lucid,
@@ -15,7 +16,7 @@ import {
   toUnit,
   Tx,
   TxHash,
-  utf8ToHex,
+  Unit,
   UTxO,
 } from "../../deps.ts";
 import scripts from "./ghc/scripts.json" assert { type: "json" };
@@ -72,8 +73,8 @@ export class Contract {
         [
           this.fundProtocol ? protocolKey : null,
           [
-            utf8ToHex(this.config.metadataKeyNames?.type || "type"),
-            utf8ToHex(this.config.metadataKeyNames?.traits || "traits"),
+            fromText(this.config.metadataKeyNames?.type || "type"),
+            fromText(this.config.metadataKeyNames?.traits || "traits"),
           ],
           toLabel(100),
           [policyId, assetName || ""],
@@ -249,13 +250,13 @@ export class Contract {
 
     const tx = await this.lucid.newTx()
       .mintAssets({
-        [toUnit(this.mintPolicyId, utf8ToHex("Bid") + assetName)]: 1n,
+        [toUnit(this.mintPolicyId, fromText("Bid") + assetName)]: 1n,
       })
       .payToContract(adjustedTradeAddress, {
         inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
       }, {
         lovelace,
-        [toUnit(this.mintPolicyId, utf8ToHex("Bid") + assetName)]: 1n,
+        [toUnit(this.mintPolicyId, fromText("Bid") + assetName)]: 1n,
       })
       .validFrom(this.lucid.utils.slotToUnixTime(1000))
       .attachMintingPolicy(this.mintPolicy)
@@ -291,11 +292,11 @@ export class Contract {
         requestedOption: {
           SpecificSymbolWithConstraints: [
             this.config.policyId,
-            constraints?.types ? constraints.types.map(utf8ToHex) : [],
+            constraints?.types ? constraints.types.map(fromText) : [],
             constraints?.traits
               ? constraints.traits.map((
                 { negation, trait },
-              ) => [negation ? -1n : 0n, utf8ToHex(trait)])
+              ) => [negation ? -1n : 0n, fromText(trait)])
               : [],
           ],
         },
@@ -304,13 +305,13 @@ export class Contract {
 
     const tx = await this.lucid.newTx()
       .mintAssets({
-        [toUnit(this.mintPolicyId, utf8ToHex("OpenBid"))]: 1n,
+        [toUnit(this.mintPolicyId, fromText("OpenBid"))]: 1n,
       })
       .payToContract(adjustedTradeAddress, {
         inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
       }, {
         lovelace,
-        [toUnit(this.mintPolicyId, utf8ToHex("OpenBid"))]: 1n,
+        [toUnit(this.mintPolicyId, fromText("OpenBid"))]: 1n,
       })
       .validFrom(this.lucid.utils.slotToUnixTime(1000))
       .attachMintingPolicy(this.mintPolicy)
@@ -417,14 +418,14 @@ export class Contract {
    * Return the current bids for a specific token sorted in descending order by price.
    * Or return the open bids on any token within the collection (use 'open' as arg instead of an asset name).
    */
-  async getBids(assetName: string | "open"): Promise<UTxO[]> {
+  async getBids(assetName: "Open" | string): Promise<UTxO[]> {
     return (await this.lucid.utxosAtWithUnit(
       this.tradeAddress,
       toUnit(
         this.mintPolicyId,
-        assetName === "open"
-          ? utf8ToHex("OpenBid")
-          : utf8ToHex("Bid") + assetName,
+        assetName === "Open"
+          ? fromText("OpenBid")
+          : fromText("Bid") + assetName,
       ),
     )).filter((utxo) => Object.keys(utxo.assets).length === 2).sort(sortDesc);
   }
@@ -439,7 +440,7 @@ export class Contract {
     royaltyRecipients: RoyaltyRecipient[],
     owner: Address,
     minAda: Lovelace = 1000000n,
-  ): Promise<TxHash> {
+  ): Promise<{ txHash: TxHash; royaltyToken: Unit }> {
     const ownerKeyHash = lucid.utils.getAddressDetails(owner).paymentCredential
       ?.hash!;
 
@@ -461,7 +462,7 @@ export class Contract {
             outputIndex: BigInt(utxo.outputIndex),
           },
         ],
-        D.OutRef,
+        Data.Tuple([D.OutRef]),
       ),
     };
 
@@ -469,7 +470,7 @@ export class Contract {
       royaltyMintingPolicy,
     );
 
-    const royaltyUnit = toUnit(royaltyPolicyId, utf8ToHex("Royalty"), 500);
+    const royaltyUnit = toUnit(royaltyPolicyId, fromText("Royalty"), 500);
 
     const royaltyInfo: D.RoyaltyInfo = {
       recipients: royaltyRecipients.map((recipient) => ({
@@ -481,10 +482,10 @@ export class Contract {
     };
 
     const tx = await lucid.newTx()
-      .collectFrom([utxo], Data.empty())
+      .collectFrom([utxo], Data.void())
       .mintAssets({
         [royaltyUnit]: 1n,
-      }, Data.empty()).payToAddressWithData(
+      }, Data.void()).payToAddressWithData(
         ownersAddress,
         { inline: Data.to<D.RoyaltyInfo>(royaltyInfo, D.RoyaltyInfo) },
         { [royaltyUnit]: 1n },
@@ -500,7 +501,7 @@ export class Contract {
       "You can now paste the Royalty Token into the Contract config.\n",
     );
 
-    return txSigned.submit();
+    return { txHash: await txSigned.submit(), royaltyToken: royaltyUnit };
   }
 
   /** Deploy necessary scripts to reduce tx costs heavily. */

@@ -1,7 +1,8 @@
 {
   "tasks": {
     "build": "deno run -A build.ts",
-    "build:contract": "cd src/ghc && cabal run contract"
+    "build:contract": "cd src/ghc && cabal run contract",
+    "test": "deno test --allow-env --allow-read --allow-net tests"
   },
   "lint": {
     "files": {
