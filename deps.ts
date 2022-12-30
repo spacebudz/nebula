@@ -3,19 +3,22 @@ export {
   C,
   Constr,
   Data,
+  Emulator,
   fromHex,
+  fromText,
   fromUnit,
+  generateSeedPhrase,
   getAddressDetails,
-  hexToUtf8,
   Lucid,
   toLabel,
+  toText,
   toUnit,
   Tx,
-  utf8ToHex,
-} from "https://deno.land/x/lucid@0.8.3/mod.ts";
+} from "https://deno.land/x/lucid@0.8.4/mod.ts";
 export type {
   Address,
   Assets,
+  Core,
   Datum,
   Json,
   Lovelace,
@@ -29,7 +32,7 @@ export type {
   TxHash,
   Unit,
   UTxO,
-} from "https://deno.land/x/lucid@0.8.3/mod.ts";
+} from "https://deno.land/x/lucid@0.8.4/mod.ts";
 
 export {
   createClient,

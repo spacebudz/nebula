@@ -5,10 +5,10 @@ import {
   Datum,
   fromHex,
   getAddressDetails,
-  hexToUtf8,
   OutRef,
   Point,
   PolicyId,
+  toText,
   TxShelleyCompatible,
 } from "../../deps.ts";
 import { pipe, transformArrayToString } from "./utils.ts";
@@ -108,13 +108,13 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
         const types =
           (bidDetails.requestedOption.SpecificSymbolWithConstraints[1]).map((
             bytes,
-          ) => hexToUtf8(bytes));
+          ) => toText(bytes));
         const traits =
           (bidDetails.requestedOption.SpecificSymbolWithConstraints[2]).map((
             trait,
           ) => ({
             negation: trait[0] < 0n,
-            trait: hexToUtf8(trait[1]),
+            trait: toText(trait[1]),
           }));
 
         const type: MarketplaceEventType = "BidOpen";

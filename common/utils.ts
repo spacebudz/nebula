@@ -2,10 +2,10 @@ import {
   Address,
   Assets,
   C,
+  fromText,
   getAddressDetails,
   Lucid,
   toLabel,
-  utf8ToHex,
   UTxO,
 } from "../deps.ts";
 import * as D from "./contract.types.ts";
@@ -13,15 +13,15 @@ import * as D from "./contract.types.ts";
 const lucid = await Lucid.new();
 
 export function idToBud(id: number): string {
-  return toLabel(222) + utf8ToHex(`Bud${id}`);
+  return toLabel(222) + fromText(`Bud${id}`);
 }
 
 export function colorToBerry(color: string): string {
-  return utf8ToHex(`Berry${color}`);
+  return fromText(`Berry${color}`);
 }
 
 export function idToMatrix(id: number): string {
-  return utf8ToHex(`Matrix${id}`);
+  return fromText(`Matrix${id}`);
 }
 
 export function sortDesc(a: UTxO, b: UTxO): number {
