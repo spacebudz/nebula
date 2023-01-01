@@ -273,17 +273,14 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
           : bid.nfts;
 
         /**
-         * If there is no signature or more than one then we cannot identify the seller. For now we leave it as null/unknown.
-         * If there is one signature we can precisely identify the seller.
+         * If there is no vkey signature then we cannot identify the seller. For now we leave it as null/unknown.
          */
         const seller = pipe(
           Object.keys(tx.witness.signatures),
           (publicKeys: string[]) =>
-            publicKeys.length <= 0 || publicKeys.length > 1
-              ? null
-              : C.PublicKey.from_bytes(
-                fromHex(publicKeys[0]),
-              ).hash().to_bech32("addr_vkh"),
+            publicKeys.length <= 0 ? null : C.PublicKey.from_bytes(
+              fromHex(publicKeys[0]),
+            ).hash().to_bech32("addr_vkh"),
         );
 
         db.addSale({
@@ -323,17 +320,15 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
         })();
 
         /**
-         * If there is no signature or more than one then we cannot identify the buyer. For now we leave it as null/unknown.
+         * If there is no signature then we cannot identify the buyer. For now we leave it as null/unknown.
          * If there is one signature we can precisely identify the buyer.
          */
         const buyer = pipe(
           Object.keys(tx.witness.signatures),
           (publicKeys: string[]) =>
-            publicKeys.length <= 0 || publicKeys.length > 1
-              ? null
-              : C.PublicKey.from_bytes(
-                fromHex(publicKeys[0]),
-              ).hash().to_bech32("addr_vkh"),
+            publicKeys.length <= 0 ? null : C.PublicKey.from_bytes(
+              fromHex(publicKeys[0]),
+            ).hash().to_bech32("addr_vkh"),
         );
 
         db.addSale({
