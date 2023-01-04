@@ -14,7 +14,7 @@ export {
   toText,
   toUnit,
   Tx,
-} from "https://deno.land/x/lucid@0.8.4/mod.ts";
+} from "https://deno.land/x/lucid@0.8.5/mod.ts";
 export type {
   Address,
   Assets,
@@ -32,7 +32,7 @@ export type {
   TxHash,
   Unit,
   UTxO,
-} from "https://deno.land/x/lucid@0.8.4/mod.ts";
+} from "https://deno.land/x/lucid@0.8.5/mod.ts";
 
 export {
   createClient,

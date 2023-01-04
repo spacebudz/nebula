@@ -68,15 +68,6 @@ export const RoyaltyInfo = Data.Object({
 });
 export type RoyaltyInfo = Data.Static<typeof RoyaltyInfo>;
 
-export const Metadata = Data.Map(Data.String, Data.String);
-export type Metadata = Data.Static<typeof Metadata>;
-
-export const DatumMetadata = Data.Object({
-  metadata: Metadata,
-  version: Data.BigInt,
-});
-export type DatumMetadata = Data.Static<typeof DatumMetadata>;
-
 export const RoyaltyToken = Data.Tuple([Data.String, Data.String]);
 export type RoyaltyToken = Data.Static<typeof RoyaltyToken>;
 
