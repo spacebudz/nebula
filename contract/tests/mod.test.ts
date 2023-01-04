@@ -1,7 +1,6 @@
 import {
   Assets,
   Constr,
-  Core,
   Data,
   Emulator,
   fromText,
