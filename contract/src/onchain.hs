@@ -151,10 +151,12 @@ tradeValidate protocolKey (typeKey, traitsKey) label100 royaltyToken datum actio
 
                                                                                                       -- | Metadata in projects can vary and projects may not use CIP-0068, which makes this feature unusable.
                                                                                                       [metadataInput] = filter (\Api.TxInInfo {txInInfoResolved=r} -> V.assetClassValueOf (txOutValue r) (V.AssetClass (sellCs, Api.TokenName(label100 <> dropByteString labelLength (unTokenName sellTn)))) == 1) txRefInputs
-                                                                                                      datumMetadata = let (Api.OutputDatumHash h) = txOutDatum (txInInfoResolved metadataInput) in 
-                                                                                                        case findDatum h txInfo of
-                                                                                                          Just (Api.Datum d) -> case PlutusTx.fromBuiltinData d of
-                                                                                                            Just m -> m :: DatumMetadata
+                                                                                                      datumMetadata = let d = case txOutDatum (txInInfoResolved metadataInput) of
+                                                                                                                                Api.OutputDatum (Api.Datum d) -> d   
+                                                                                                                                Api.OutputDatumHash h -> case findDatum h txInfo of
+                                                                                                                                  Just (Api.Datum d) -> d
+                                                                                                                      in case PlutusTx.fromBuiltinData d of
+                                                                                                                          Just m -> m :: DatumMetadata
                                                                                                       mType = let Just rawType = M.lookup typeKey (metadata datumMetadata) in (PlutusTx.unsafeFromBuiltinData rawType) :: BuiltinByteString
                                                                                                       mTraits = let Just rawTraits = M.lookup traitsKey (metadata datumMetadata) in (PlutusTx.unsafeFromBuiltinData rawTraits) :: [BuiltinByteString]
                                                                                                     in
