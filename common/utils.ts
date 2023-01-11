@@ -34,6 +34,16 @@ export function sortDesc(a: UTxO, b: UTxO): number {
   }
 }
 
+export function sortAsc(a: UTxO, b: UTxO): number {
+  if (a.assets.lovelace > b.assets.lovelace) {
+    return 1;
+  } else if (a.assets.lovelace < b.assets.lovelace) {
+    return -1;
+  } else {
+    return 0;
+  }
+}
+
 export function toOwner(
   { address, data }: { address?: Address; data?: D.Address },
 ): string {

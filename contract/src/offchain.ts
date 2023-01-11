@@ -23,6 +23,7 @@ import scripts from "./ghc/scripts.json" assert { type: "json" };
 import {
   fromAddress,
   fromAssets,
+  sortAsc,
   sortDesc,
   toAddress,
   toAssets,
@@ -403,7 +404,7 @@ export class Contract {
     return utxo || null;
   }
 
-  /** Return the current listings for a specific asset sorted in descending order by price. */
+  /** Return the current listings for a specific asset sorted in ascending order by price. */
   async getListings(assetName: string): Promise<UTxO[]> {
     return (await this.lucid.utxosAtWithUnit(
       this.tradeAddress,
@@ -411,7 +412,7 @@ export class Contract {
         this.config.policyId,
         assetName,
       ),
-    )).filter((utxo) => Object.keys(utxo.assets).length === 2).sort(sortDesc);
+    )).filter((utxo) => Object.keys(utxo.assets).length === 2).sort(sortAsc);
   }
 
   /**
