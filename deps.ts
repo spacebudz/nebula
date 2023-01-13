@@ -10,11 +10,12 @@ export {
   generateSeedPhrase,
   getAddressDetails,
   Lucid,
+  paymentCredentialOf,
   toLabel,
   toText,
   toUnit,
   Tx,
-} from "https://deno.land/x/lucid@0.8.5/mod.ts";
+} from "https://deno.land/x/lucid@0.8.7/mod.ts";
 export type {
   Address,
   Assets,
@@ -32,7 +33,7 @@ export type {
   TxHash,
   Unit,
   UTxO,
-} from "https://deno.land/x/lucid@0.8.5/mod.ts";
+} from "https://deno.land/x/lucid@0.8.7/mod.ts";
 
 export {
   createClient,

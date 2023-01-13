@@ -9,6 +9,7 @@ import {
   Lucid,
   MintingPolicy,
   OutRef,
+  paymentCredentialOf,
   PolicyId,
   ScriptHash,
   SpendingValidator,
@@ -407,7 +408,7 @@ export class Contract {
   /** Return the current listings for a specific asset sorted in ascending order by price. */
   async getListings(assetName: string): Promise<UTxO[]> {
     return (await this.lucid.utxosAtWithUnit(
-      this.tradeAddress,
+      paymentCredentialOf(this.tradeAddress),
       toUnit(
         this.config.policyId,
         assetName,
@@ -421,7 +422,7 @@ export class Contract {
    */
   async getBids(assetName: "Open" | string): Promise<UTxO[]> {
     return (await this.lucid.utxosAtWithUnit(
-      this.tradeAddress,
+      paymentCredentialOf(this.tradeAddress),
       toUnit(
         this.mintPolicyId,
         assetName === "Open"
@@ -580,7 +581,7 @@ export class Contract {
     });
     const ownerAddress = this.lucid.utils.validatorToAddress(ownersScript);
 
-    const utxos = await this.lucid.utxosAt(ownerAddress);
+    const utxos = await this.lucid.utxosAt(paymentCredentialOf(ownerAddress));
     const royaltyUtxo = utxos.find((utxo) =>
       utxo.assets[this.config.royaltyToken]
     );
