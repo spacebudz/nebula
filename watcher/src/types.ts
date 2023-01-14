@@ -139,7 +139,7 @@ export type BidOpenEventData = {
 export type SaleSingleEventData = {
   txHash: TxHash;
   slot: Slot;
-  nfts: Unit | Unit[];
+  nfts: Unit;
   /** We can savely use number here and don't need bigint. */
   lovelace: number;
   /** Bech32 payment credential */

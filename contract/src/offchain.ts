@@ -31,6 +31,7 @@ import {
 } from "../../common/utils.ts";
 import * as D from "../../common/contract.types.ts";
 import { ContractConfig, RoyaltyRecipient } from "./types.ts";
+import { budConfig } from "./config.ts";
 
 export class Contract {
   lucid: Lucid;
@@ -48,7 +49,7 @@ export class Contract {
    */
   constructor(
     lucid: Lucid,
-    config: ContractConfig,
+    config: ContractConfig = budConfig,
   ) {
     this.lucid = lucid;
     this.config = config;
@@ -218,7 +219,11 @@ export class Contract {
         inline: Data.to<D.TradeDatum>(tradeDatum, D.TradeDatum),
       }, listingUtxo.assets)
       .addSigner(owner)
-      .readFrom([refScripts.trade])
+      .compose(
+        refScripts.trade
+          ? this.lucid.newTx().readFrom([refScripts.trade])
+          : this.lucid.newTx().attachSpendingValidator(this.tradeValidator),
+      )
       .complete();
 
     const txSigned = await tx.sign().complete();
@@ -347,7 +352,11 @@ export class Contract {
       inline: bidUtxo.datum!,
     }, { ...bidUtxo.assets, lovelace })
       .addSigner(owner)
-      .readFrom([refScripts.trade])
+      .compose(
+        refScripts.trade
+          ? this.lucid.newTx().readFrom([refScripts.trade])
+          : this.lucid.newTx().attachSpendingValidator(this.tradeValidator),
+      )
       .complete();
 
     const txSigned = await tx.sign().complete();
@@ -545,8 +554,8 @@ export class Contract {
     };
   }
 
-  async getDeployedScripts(): Promise<{ trade: UTxO }> {
-    if (!this.config.deployTxHash) throw new Error("Scripts are not deployed.");
+  async getDeployedScripts(): Promise<{ trade: UTxO | null }> {
+    if (!this.config.deployTxHash) return { trade: null };
     const [trade] = await this.lucid.utxosByOutRef([{
       txHash: this.config.deployTxHash,
       outputIndex: 0,
@@ -633,7 +642,11 @@ export class Contract {
       Data.to<D.TradeAction>("Cancel", D.TradeAction),
     )
       .addSigner(owner)
-      .readFrom([refScripts.trade]);
+      .compose(
+        refScripts.trade
+          ? this.lucid.newTx().readFrom([refScripts.trade])
+          : this.lucid.newTx().attachSpendingValidator(this.tradeValidator),
+      );
   }
 
   private async _sell(
@@ -729,7 +742,11 @@ export class Contract {
           : null,
       )
       .validFrom(this.lucid.utils.slotToUnixTime(1000))
-      .readFrom([refScripts.trade])
+      .compose(
+        refScripts.trade
+          ? this.lucid.newTx().readFrom([refScripts.trade])
+          : this.lucid.newTx().attachSpendingValidator(this.tradeValidator),
+      )
       .attachMintingPolicy(this.mintPolicy);
   }
 
@@ -760,7 +777,11 @@ export class Contract {
       .mintAssets({ [bidToken]: -1n })
       .validFrom(this.lucid.utils.slotToUnixTime(1000))
       .addSigner(owner)
-      .readFrom([refScripts.trade])
+      .compose(
+        refScripts.trade
+          ? this.lucid.newTx().readFrom([refScripts.trade])
+          : this.lucid.newTx().attachSpendingValidator(this.tradeValidator),
+      )
       .attachMintingPolicy(this.mintPolicy);
   }
 
@@ -813,7 +834,11 @@ export class Contract {
           ? this.lucid.newTx().payToAddress(PROTOCOL_FUND_ADDRESS, {})
           : null,
       )
-      .readFrom([refScripts.trade]);
+      .compose(
+        refScripts.trade
+          ? this.lucid.newTx().readFrom([refScripts.trade])
+          : this.lucid.newTx().attachSpendingValidator(this.tradeValidator),
+      );
   }
 
   private async _payFee(
