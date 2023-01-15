@@ -230,6 +230,10 @@ export function eventsHandler(events: MarketplaceEvent[]) {
     }
   }
 }
+
+export function onChange() {
+  // optionally handle db changes
+}
 ```
 
 2. Start the watcher:
