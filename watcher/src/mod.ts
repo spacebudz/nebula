@@ -5,7 +5,7 @@ import {
   toShelleyCompatibleBlock,
 } from "../../deps.ts";
 import { db } from "./db.ts";
-import { eventsHandler, flags } from "./flags.ts";
+import { eventsHandler, flags, onChange } from "./flags.ts";
 import { isEmptyString, pipe } from "./utils.ts";
 import { watchBlock } from "./watcher.ts";
 
@@ -30,11 +30,13 @@ function rollForward(block: Block, hasExited: boolean) {
   if (
     blockShelley.header.blockHeight % CHECKPOINT_INTERVAL === 0 || hasExited
   ) db.updateCheckpoint("Sync", point);
+  if (db.hasChange()) onChange();
 }
 
 function rollBackward(point: Point) {
   db.rollbackDatabase(point);
   db.updateCheckpoint("Rollback", point);
+  if (db.hasChange()) onChange();
 }
 
 const client = await createClient({

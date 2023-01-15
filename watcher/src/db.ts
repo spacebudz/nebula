@@ -106,10 +106,12 @@ CREATE TABLE IF NOT EXISTS checkpoint (
 
 class MarketplaceDB {
   db: DB;
+  changes: number;
 
   constructor(db: DB, startPoint?: Point) {
     this.db = db;
     this.db.execute(tableCreation);
+    this.changes = this.db.totalChanges;
 
     try {
       this.getCheckpoint();
@@ -472,6 +474,14 @@ class MarketplaceDB {
   }
   close() {
     this.db.close();
+  }
+
+  hasChange(): boolean {
+    if (this.changes !== this.db.totalChanges) {
+      this.changes = this.db.totalChanges;
+      return true;
+    }
+    return false;
   }
 }
 

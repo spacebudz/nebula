@@ -46,9 +46,10 @@ if (!flags.database) {
   throw "--database flag required.";
 }
 
-export const { config, eventsHandler }: {
+export const { config, eventsHandler, onChange }: {
   config: Config;
   eventsHandler: (events: MarketplaceEvent[]) => unknown;
+  onChange: () => unknown;
 } = await import(
   resolvePath(flags.config || new URL("../config.ts", import.meta.url)).href
 );
