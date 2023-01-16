@@ -114,11 +114,6 @@ fn get_own_input(ctx: ScriptContext) -> Input {
   input
 }
 
-pub fn without_lovelace(value: Value) -> Value {
-  // dict.delete(value.inner, #[]) TODO
-  value
-}
-
 /// This is a special signing function. 
 /// Signer can not only be a pub key hash, but also a script.
 /// For pub key hashes it's trivial, but as script owner you need to lock a special
@@ -256,7 +251,7 @@ fn paid_buyer(
 ) -> Bool {
   when bidding_details.requested_option is {
     SpecificValue(requested_value) ->
-      without_lovelace(requested_value) == without_lovelace(
+      value.without_lovelace(requested_value) == value.without_lovelace(
       value_paid_to_with_datum(tx, bidding_details.owner, payment_datum))
       
     SpecificPolicyIdWithConstraints(policy_id, types, traits) -> {
