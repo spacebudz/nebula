@@ -16,7 +16,7 @@
 
 ```ts
 import { Contract } from "https://deno.land/x/nebula@0.1.3/contract/mod.ts"
-import { Lucid, Blockfrost } from "https://deno.land/x/lucid@0.7.9/mod.ts"
+import { Lucid, Blockfrost } from "https://deno.land/x/lucid@0.8.7/mod.ts"
 
 const lucid = await Lucid.new(
   new Blockfrost(
