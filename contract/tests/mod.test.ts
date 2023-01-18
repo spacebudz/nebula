@@ -101,6 +101,19 @@ async function createNFTs() {
     .validFrom(emulator.now())
     .attachMintingPolicy(script).complete();
 
+  console.log(Data.to(
+    new Constr(0, [
+      Data.fromJson({
+        name: "SpaceBud #25",
+        image: "ipfs://QmSNJ78jdqwbd6yRtHzLrXNnaY8vnuuGN4AbJbMVd2XRuC",
+        traits: ["Belt", "Axe"],
+        type: "Dino",
+        imageHash: "sha256",
+      }),
+      1n,
+    ]),
+  ));
+
   const signedTx = await tx.sign().complete();
   return { txHash: await signedTx.submit(), policyId };
 }

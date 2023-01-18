@@ -1,7 +1,0 @@
-name = "contract_aiken/contract_aiken"
-version = "0.1.0"
-licences = ["Apache-2.0"]
-description = "Aiken contracts"
-
-dependencies = []
-

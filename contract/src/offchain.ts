@@ -13,14 +13,19 @@ import {
   PolicyId,
   ScriptHash,
   SpendingValidator,
-  toLabel,
   toUnit,
   Tx,
   TxHash,
   Unit,
   UTxO,
 } from "../../deps.ts";
-import scripts from "./ghc/scripts.json" assert { type: "json" };
+// import scripts from "./ghc/scripts.json" assert { type: "json" };
+import nebulaScript from "./contract/assets/nebula/spend/payment_script.json" assert {
+  type: "json",
+};
+import oneShotScript from "./contract/assets/oneshot/mint/payment_script.json" assert {
+  type: "json",
+};
 import {
   fromAddress,
   fromAssets,
@@ -72,15 +77,16 @@ export class Contract {
     this.tradeValidator = {
       type: "PlutusV2",
       script: applyParamsToScript<D.TradeParams>(
-        scripts.trade,
+        nebulaScript.cborHex,
         [
           this.fundProtocol ? protocolKey : null,
-          [
-            fromText(this.config.metadataKeyNames?.type || "type"),
-            fromText(this.config.metadataKeyNames?.traits || "traits"),
-          ],
-          toLabel(100),
-          [policyId, assetName || ""],
+          {
+            typeKey: fromText(this.config.metadataKeyNames?.type || "type"),
+            traitsKey: fromText(
+              this.config.metadataKeyNames?.traits || "traits",
+            ),
+          },
+          { policyId, assetName: assetName || "" },
         ],
         D.TradeParams,
       ),
@@ -303,7 +309,11 @@ export class Contract {
             constraints?.traits
               ? constraints.traits.map((
                 { negation, trait },
-              ) => [negation ? -1n : 0n, fromText(trait)])
+              ) =>
+                negation
+                  ? { Excluded: [fromText(trait)] }
+                  : { Included: [fromText(trait)] }
+              )
               : [],
           ],
         },
@@ -427,7 +437,7 @@ export class Contract {
 
   /**
    * Return the current bids for a specific token sorted in descending order by price.
-   * Or return the open bids on any token within the collection (use 'open' as arg instead of an asset name).
+   * Or return the open bids on any token within the collection (use 'Open' as arg instead of an asset name).
    */
   async getBids(assetName: "Open" | string): Promise<UTxO[]> {
     return (await this.lucid.utxosAtWithUnit(
@@ -466,7 +476,7 @@ export class Contract {
     const royaltyMintingPolicy: MintingPolicy = {
       type: "PlutusV2",
       script: applyParamsToScript<[D.OutRef]>(
-        scripts.oneShot,
+        oneShotScript.cborHex,
         [
           {
             txHash: { hash: utxo.txHash },
