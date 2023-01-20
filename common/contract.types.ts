@@ -24,13 +24,19 @@ export type Address = Data.Static<typeof Address>;
 export const Value = Data.Map(Data.String, Data.Map(Data.String, Data.BigInt));
 export type Value = Data.Static<typeof Value>;
 
+export const TraitOption = Data.Enum([
+  Data.Object({ Included: Data.Tuple([Data.String]) }),
+  Data.Object({ Excluded: Data.Tuple([Data.String]) }),
+]);
+export type TraitOption = Data.Static<typeof TraitOption>;
+
 export const BidOption = Data.Enum([
   Data.Object({ SpecificValue: Data.Tuple([Value]) }),
   Data.Object({
     SpecificSymbolWithConstraints: Data.Tuple([
       Data.String,
       Data.Array(Data.String),
-      Data.Array(Data.Tuple([Data.BigInt, Data.String])),
+      Data.Array(TraitOption),
     ]),
   }),
 ]);
@@ -68,7 +74,10 @@ export const RoyaltyInfo = Data.Object({
 });
 export type RoyaltyInfo = Data.Static<typeof RoyaltyInfo>;
 
-export const RoyaltyToken = Data.Tuple([Data.String, Data.String]);
+export const RoyaltyToken = Data.Object({
+  policyId: Data.String,
+  assetName: Data.String,
+});
 export type RoyaltyToken = Data.Static<typeof RoyaltyToken>;
 
 export const PaymentDatum = Data.Object({
@@ -89,10 +98,15 @@ export const TradeDatum = Data.Enum([
 ]);
 export type TradeDatum = Data.Static<typeof TradeDatum>;
 
+export const MetadataKeys = Data.Object({
+  typeKey: Data.String,
+  traitsKey: Data.String,
+});
+export type MetadataKeys = Data.Static<typeof MetadataKeys>;
+
 export const TradeParams = Data.Tuple([
   Data.Nullable(Data.String),
-  Data.Tuple([Data.String, Data.String]),
-  Data.String,
+  MetadataKeys,
   RoyaltyToken,
 ]);
 export type TradeParams = Data.Static<typeof TradeParams>;

@@ -112,10 +112,11 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
         const traits =
           (bidDetails.requestedOption.SpecificSymbolWithConstraints[2]).map((
             trait,
-          ) => ({
-            negation: trait[0] < 0n,
-            trait: toText(trait[1]),
-          }));
+          ) =>
+            "Included" in trait
+              ? { negation: false, trait: toText(trait.Included[0]) }
+              : { negation: true, trait: toText(trait.Excluded[0]) }
+          );
 
         const type: MarketplaceEventType = "BidOpen";
 

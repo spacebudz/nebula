@@ -20,10 +20,10 @@ import {
   UTxO,
 } from "../../deps.ts";
 // import scripts from "./ghc/scripts.json" assert { type: "json" };
-import nebulaScript from "./contract/assets/nebula/spend/payment_script.json" assert {
+import nebulaScript from "./nebula/assets/nebula/spend/payment_script.json" assert {
   type: "json",
 };
-import oneShotScript from "./contract/assets/oneshot/mint/payment_script.json" assert {
+import oneShotScript from "./nebula/assets/oneshot/mint/payment_script.json" assert {
   type: "json",
 };
 import {

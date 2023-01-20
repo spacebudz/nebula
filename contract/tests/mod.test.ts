@@ -101,19 +101,6 @@ async function createNFTs() {
     .validFrom(emulator.now())
     .attachMintingPolicy(script).complete();
 
-  console.log(Data.to(
-    new Constr(0, [
-      Data.fromJson({
-        name: "SpaceBud #25",
-        image: "ipfs://QmSNJ78jdqwbd6yRtHzLrXNnaY8vnuuGN4AbJbMVd2XRuC",
-        traits: ["Belt", "Axe"],
-        type: "Dino",
-        imageHash: "sha256",
-      }),
-      1n,
-    ]),
-  ));
-
   const signedTx = await tx.sign().complete();
   return { txHash: await signedTx.submit(), policyId };
 }
@@ -135,6 +122,14 @@ const { txHash, royaltyToken } = await Contract.createRoyalty(
     fixedFee: 1500000n,
   }, {
     address: "addr_test1vr0yva2r7l8wjyfcpptewfu6gk88gqsvxzlqkvjuatdpr5st9chpv",
+    fee: 0.004,
+    fixedFee: 1500000n,
+  }, {
+    address: (await generateAccount({ lovelace: 0n })).address,
+    fee: 0.004,
+    fixedFee: 1500000n,
+  }, {
+    address: (await generateAccount({ lovelace: 0n })).address,
     fee: 0.004,
     fixedFee: 1500000n,
   }],
