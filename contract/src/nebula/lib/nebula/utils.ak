@@ -88,3 +88,27 @@ pub fn value_paid_to_with_datum(
   //   )
   // output.value
 }
+
+pub fn adjust_upper_bound(fee: Int, upper_bound: Option<Int>) -> Int {
+  when upper_bound is {
+    Some(max_fee) ->
+      if fee > max_fee {
+        max_fee
+      } else {
+        fee
+      }
+    None -> fee
+  }
+}
+
+test adjust_upper_bound_1() {
+  adjust_upper_bound(100, None) == 100
+}
+
+test adjust_upper_bound_2() {
+  adjust_upper_bound(0, Some(100)) == 0
+}
+
+test adjust_upper_bound_3() {
+  adjust_upper_bound(110, Some(100)) == 100
+}

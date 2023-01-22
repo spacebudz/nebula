@@ -115,42 +115,40 @@ const { txHash, royaltyToken } = await Contract.createRoyalty(
   [{
     address: "addr_test1vqdr6txha8u2q4c5h2xy5rvk7lslvr252k2khln5mea32lcf82jnm",
     fee: 0.016,
-    fixedFee: 1500000n,
+    maxFee: 1500000n,
   }, {
     address: "addr_test1vz54zm2fmqxzm6m6jq577ssu4z67tw0qk2xm6m7zceexlfc7qyr5h",
     fee: 0.004,
-    fixedFee: 1500000n,
   }, {
     address: "addr_test1vr0yva2r7l8wjyfcpptewfu6gk88gqsvxzlqkvjuatdpr5st9chpv",
     fee: 0.004,
-    fixedFee: 1500000n,
+    maxFee: 1500000n,
   }, {
     address: (await generateAccount({ lovelace: 0n })).address,
     fee: 0.004,
-    fixedFee: 1500000n,
+    maxFee: 1400000n,
   }, {
     address: (await generateAccount({ lovelace: 0n })).address,
     fee: 0.004,
-    fixedFee: 1500000n,
   }],
   ACCOUNT_0.address,
 );
 
 await lucid.awaitTx(txHash);
 
-const deployTxHash = await new Contract(lucid, {
+const deployHash = await new Contract(lucid, {
   royaltyToken,
   owner: ACCOUNT_0.address,
   policyId,
 }).deployScripts();
 
-await lucid.awaitTx(deployTxHash);
+await lucid.awaitTx(deployHash);
 
 const contract = new Contract(lucid, {
   royaltyToken,
   owner: ACCOUNT_0.address,
   policyId,
-  deployTxHash,
+  deployHash,
 });
 
 // ---- SETUP

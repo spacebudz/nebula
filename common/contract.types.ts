@@ -64,13 +64,12 @@ export type BiddingDetails = Data.Static<typeof BiddingDetails>;
 export const RoyaltyRecipient = Data.Object({
   address: Address,
   fee: Data.BigInt,
-  fixedFee: Data.BigInt,
+  maxFee: Data.Nullable(Data.BigInt),
 });
 export type RoyaltyRecipient = Data.Static<typeof RoyaltyRecipient>;
 
 export const RoyaltyInfo = Data.Object({
   recipients: Data.Array(RoyaltyRecipient),
-  minAda: Data.BigInt,
 });
 export type RoyaltyInfo = Data.Static<typeof RoyaltyInfo>;
 
@@ -98,15 +97,8 @@ export const TradeDatum = Data.Enum([
 ]);
 export type TradeDatum = Data.Static<typeof TradeDatum>;
 
-export const MetadataKeys = Data.Object({
-  typeKey: Data.String,
-  traitsKey: Data.String,
-});
-export type MetadataKeys = Data.Static<typeof MetadataKeys>;
-
 export const TradeParams = Data.Tuple([
   Data.Nullable(Data.String),
-  MetadataKeys,
   RoyaltyToken,
 ]);
 export type TradeParams = Data.Static<typeof TradeParams>;

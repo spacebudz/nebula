@@ -1,15 +1,14 @@
 use aiken/transaction.{ScriptContext}
 use aiken/transaction/value
 use nebula/types.{
-  Bid, Buy, Cancel, Listing, MetadataKeys, PaymentDatum, PublicKeyHash,
-  RoyaltyToken, Sell, TradeAction, TradeDatum,
+  Bid, Buy, Cancel, Listing, PaymentDatum, PublicKeyHash, RoyaltyToken, Sell,
+  TradeAction, TradeDatum,
 }
 use nebula/utils.{get_own_input, tx_signed_by_address}
 use nebula/validation.{paid_buyer, paid_fee, paid_protocol, paid_seller}
 
 fn spend(
   protocol_key: Option<PublicKeyHash>,
-  metadata_keys: MetadataKeys,
   royalty_token: RoyaltyToken,
   datum: TradeDatum,
   action: TradeAction,
@@ -33,7 +32,6 @@ fn spend(
                 tx,
                 payment_datum,
                 bidding_details,
-                metadata_keys,
               )
             None -> False
           }

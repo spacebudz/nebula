@@ -9,7 +9,7 @@ use nebula/constants
 use nebula/fixture
 use nebula/types.{
   BiddingDetails, DatumMetadata, Excluded, Included, ListingDetails,
-  MetadataKeys, PublicKeyHash, RoyaltyInfo, RoyaltyRecipient, RoyaltyToken,
+  PublicKeyHash, RoyaltyInfo, RoyaltyRecipient, RoyaltyToken,
   SpecificPolicyIdWithConstraints, SpecificValue,
 }
 use nebula/utils
@@ -17,7 +17,6 @@ use nebula/utils
 pub fn checked_fee_recipients(
   tx: Transaction,
   royalty_recipients: List<RoyaltyRecipient>,
-  min_ada: Int,
   payment_datum: Data,
   accepted_lovelace: Int,
   remaining_lovelace: Int,
@@ -27,11 +26,7 @@ pub fn checked_fee_recipients(
     [fee_recipient, ..remaining_recipients] -> {
       let fee_to_pay = accepted_lovelace * 10 / fee_recipient.fee
       let adjusted_fee =
-        if fee_to_pay < min_ada {
-          fee_recipient.fixed_fee
-        } else {
-          fee_to_pay
-        }
+        utils.adjust_upper_bound(fee_to_pay, fee_recipient.max_fee)
       let new_lovelace = remaining_lovelace - adjusted_fee
       let has_paid =
         value.lovelace_of(
@@ -41,7 +36,6 @@ pub fn checked_fee_recipients(
         checked_fee_recipients(
           tx,
           remaining_recipients,
-          min_ada,
           payment_datum,
           accepted_lovelace,
           new_lovelace,
@@ -97,7 +91,6 @@ pub fn paid_fee(
           checked_fee_recipients(
             tx,
             royalty_info.recipients,
-            royalty_info.min_ada,
             payment_datum,
             accepted_lovelace,
             accepted_lovelace,
@@ -134,7 +127,6 @@ pub fn paid_buyer(
   tx: Transaction,
   payment_datum: Data,
   bidding_details: BiddingDetails,
-  metadata_keys: MetadataKeys,
 ) -> Bool {
   when bidding_details.requested_option is {
     SpecificValue(requested_value) ->
@@ -180,12 +172,12 @@ pub fn paid_buyer(
           }
           let metadata_type: ByteArray = {
             assert Some(t) =
-              dict.get(datum_metadata.metadata, metadata_keys.type_key)
+              dict.get(datum_metadata.metadata, constants.type_key)
             builtin.un_b_data(t)
           }
           let metadata_traits: List<ByteArray> = {
             assert Some(t) =
-              dict.get(datum_metadata.metadata, metadata_keys.traits_key)
+              dict.get(datum_metadata.metadata, constants.traits_key)
             list.map(builtin.un_list_data(t), fn(d) { builtin.un_b_data(d) })
           }
           let has_type = when types is {
@@ -219,7 +211,7 @@ pub fn paid_buyer(
           }
           has_type && has_traits && policy_id == sell_policy_id
         }
-        _ -> error
+        _ -> False
       }
     }
   }

@@ -18,15 +18,17 @@ pub type BiddingDetails {
   requested_option: BidOption,
 }
 
+// TODO: Fix aiken assert
 pub type RoyaltyInfo {
   recipients: List<RoyaltyRecipient>,
-  min_ada: Int,
 }
 
 pub type RoyaltyRecipient {
   address: Address,
+  // percentage (fraction)
   fee: Int,
-  fixed_fee: Int,
+  // fixed
+  max_fee: Option<Int>,
 }
 
 pub type Metadata =
@@ -65,9 +67,4 @@ pub type TradeAction {
 
 pub type PaymentDatum {
   output_reference: OutputReference,
-}
-
-pub type MetadataKeys {
-  type_key: ByteArray,
-  traits_key: ByteArray,
 }

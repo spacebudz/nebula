@@ -80,12 +80,6 @@ export class Contract {
         nebulaScript.cborHex,
         [
           this.fundProtocol ? protocolKey : null,
-          {
-            typeKey: fromText(this.config.metadataKeyNames?.type || "type"),
-            traitsKey: fromText(
-              this.config.metadataKeyNames?.traits || "traits",
-            ),
-          },
           { policyId, assetName: assetName || "" },
         ],
         D.TradeParams,
@@ -181,6 +175,8 @@ export class Contract {
       this.lucid,
     );
 
+    const ownerKey = paymentCredentialOf(owner).hash;
+
     listingDetails[0].requestedLovelace = lovelace;
     listingDetails[0].privateListing = privateListing
       ? fromAddress(privateListing)
@@ -188,7 +184,9 @@ export class Contract {
 
     const address: Address = await this.lucid.wallet.address();
 
-    if (owner !== address) throw new Error("You are not the owner.");
+    if (ownerKey !== paymentCredentialOf(address).hash) {
+      throw new Error("You are not the owner.");
+    }
 
     const refScripts = await this.getDeployedScripts();
 
@@ -200,7 +198,7 @@ export class Contract {
       .payToContract(listingUtxo.address, {
         inline: Data.to<D.TradeDatum>(tradeDatum, D.TradeDatum),
       }, listingUtxo.assets)
-      .addSigner(owner)
+      .addSignerKey(ownerKey)
       .compose(
         refScripts.trade
           ? this.lucid.newTx().readFrom([refScripts.trade])
@@ -248,10 +246,13 @@ export class Contract {
     }
 
     const owner: Address = toAddress(tradeDatum.Bid[0].owner, this.lucid);
+    const ownerKey = paymentCredentialOf(owner).hash;
 
     const address: Address = await this.lucid.wallet.address();
 
-    if (owner !== address) throw new Error("You are not the owner.");
+    if (ownerKey !== paymentCredentialOf(address).hash) {
+      throw new Error("You are not the owner.");
+    }
 
     const refScripts = await this.getDeployedScripts();
 
@@ -261,7 +262,7 @@ export class Contract {
     ).payToContract(bidUtxo.address, {
       inline: bidUtxo.datum!,
     }, { ...bidUtxo.assets, lovelace })
-      .addSigner(owner)
+      .addSignerKey(ownerKey)
       .compose(
         refScripts.trade
           ? this.lucid.newTx().readFrom([refScripts.trade])
@@ -354,13 +355,11 @@ export class Contract {
   /**
    * Create a royalty token and lock it in a script controlled by the specified owner.
    * The output the royalty token is in holds the royalty info (fees, recipients) in the datum.\
-   * minAda is the threshold that decides to pay fee as percentage or fixed.
    */
   static async createRoyalty(
     lucid: Lucid,
     royaltyRecipients: RoyaltyRecipient[],
     owner: Address,
-    minAda: Lovelace = 1000000n,
   ): Promise<{ txHash: TxHash; royaltyToken: Unit }> {
     const ownerKeyHash = lucid.utils.getAddressDetails(owner).paymentCredential
       ?.hash!;
@@ -397,21 +396,20 @@ export class Contract {
       recipients: royaltyRecipients.map((recipient) => ({
         address: fromAddress(recipient.address),
         fee: BigInt(Math.floor(1 / (recipient.fee / 10))),
-        fixedFee: recipient.fixedFee,
+        maxFee: recipient.maxFee || null,
       })),
-      minAda,
     };
 
     const tx = await lucid.newTx()
       .collectFrom([utxo], Data.void())
       .mintAssets({
         [royaltyUnit]: 1n,
-      }, Data.void()).payToAddressWithData(
+      }, Data.void())
+      .payToAddressWithData(
         ownersAddress,
         { inline: Data.to<D.RoyaltyInfo>(royaltyInfo, D.RoyaltyInfo) },
         { [royaltyUnit]: 1n },
       )
-      .validFrom(lucid.utils.slotToUnixTime(1000))
       .attachMintingPolicy(royaltyMintingPolicy)
       .complete();
 
@@ -427,6 +425,9 @@ export class Contract {
 
   /** Deploy necessary scripts to reduce tx costs heavily. */
   async deployScripts(): Promise<TxHash> {
+    if (!this.config.owner) {
+      throw new Error("No owner specified. Specify an owner in the config.");
+    }
     const deployScript = this.lucid.utils.nativeScriptFromJson({
       type: "sig",
       keyHash: this.lucid.utils.getAddressDetails(this.config.owner)
@@ -465,9 +466,9 @@ export class Contract {
   }
 
   async getDeployedScripts(): Promise<{ trade: UTxO | null }> {
-    if (!this.config.deployTxHash) return { trade: null };
+    if (!this.config.deployHash) return { trade: null };
     const [trade] = await this.lucid.utxosByOutRef([{
-      txHash: this.config.deployTxHash,
+      txHash: this.config.deployHash,
       outputIndex: 0,
     }]);
     return { trade };
@@ -487,12 +488,13 @@ export class Contract {
 
   /**
    * Update royalty info like fees and recipients.\
-   * minAda is the threshold that decides to pay fee as percentage or fixed.
    */
   async updateRoyalty(
     royaltyRecipients: RoyaltyRecipient[],
-    minAda: Lovelace = 1000000n,
   ): Promise<TxHash> {
+    if (!this.config.owner) {
+      throw new Error("No owner specified. Specify an owner in the config.");
+    }
     const ownersScript = this.lucid.utils.nativeScriptFromJson({
       type: "sig",
       keyHash: this.lucid.utils.getAddressDetails(this.config.owner)
@@ -511,9 +513,8 @@ export class Contract {
       recipients: royaltyRecipients.map((recipient) => ({
         address: fromAddress(recipient.address),
         fee: BigInt(Math.floor(1 / (recipient.fee / 10))),
-        fixedFee: recipient.fixedFee,
+        maxFee: recipient.maxFee || null,
       })),
-      minAda,
     };
 
     const tx = await this.lucid.newTx()
@@ -669,10 +670,13 @@ export class Contract {
       throw new Error("Not a listing UTxO");
     }
     const owner: Address = toAddress(tradeDatum.Listing[0].owner, this.lucid);
+    const ownerKey = paymentCredentialOf(owner).hash;
 
     const address: Address = await this.lucid.wallet.address();
 
-    if (owner !== address) throw new Error("You are not the owner.");
+    if (ownerKey !== paymentCredentialOf(address).hash) {
+      throw new Error("You are not the owner.");
+    }
 
     const refScripts = await this.getDeployedScripts();
 
@@ -680,7 +684,7 @@ export class Contract {
       [listingUtxo],
       Data.to<D.TradeAction>("Cancel", D.TradeAction),
     )
-      .addSigner(owner)
+      .addSignerKey(ownerKey)
       .compose(
         refScripts.trade
           ? this.lucid.newTx().readFrom([refScripts.trade])
@@ -753,10 +757,11 @@ export class Contract {
 
     const refScripts = await this.getDeployedScripts();
 
-    return this.lucid.newTx().collectFrom(
-      [bidUtxo],
-      Data.to<D.TradeAction>("Sell", D.TradeAction),
-    )
+    return this.lucid.newTx()
+      .collectFrom(
+        [bidUtxo],
+        Data.to<D.TradeAction>("Sell", D.TradeAction),
+      )
       .compose(
         refNFT
           ? await (async () => {
@@ -798,10 +803,13 @@ export class Contract {
       throw new Error("Not a bidding UTxO");
     }
     const owner: Address = toAddress(tradeDatum.Bid[0].owner, this.lucid);
+    const ownerKey = paymentCredentialOf(owner).hash;
 
     const address: Address = await this.lucid.wallet.address();
 
-    if (owner !== address) throw new Error("You are not the owner.");
+    if (ownerKey !== paymentCredentialOf(address).hash) {
+      throw new Error("You are not the owner.");
+    }
 
     const [bidToken] = Object.keys(bidUtxo.assets).filter((unit) =>
       unit !== "lovelace"
@@ -809,13 +817,14 @@ export class Contract {
 
     const refScripts = await this.getDeployedScripts();
 
-    return this.lucid.newTx().collectFrom(
-      [bidUtxo],
-      Data.to<D.TradeAction>("Cancel", D.TradeAction),
-    )
+    return this.lucid.newTx()
+      .collectFrom(
+        [bidUtxo],
+        Data.to<D.TradeAction>("Cancel", D.TradeAction),
+      )
       .mintAssets({ [bidToken]: -1n })
       .validFrom(this.lucid.utils.slotToUnixTime(1000))
-      .addSigner(owner)
+      .addSignerKey(ownerKey)
       .compose(
         refScripts.trade
           ? this.lucid.newTx().readFrom([refScripts.trade])
@@ -890,7 +899,6 @@ export class Contract {
     let remainingLovelace = lovelace;
 
     const recipients = royaltyInfo.recipients;
-    const minAda = royaltyInfo.minAda;
 
     for (const recipient of recipients) {
       const address: Address = toAddress(
@@ -898,10 +906,10 @@ export class Contract {
         this.lucid,
       );
       const fee = recipient.fee;
-      const fixedFee = recipient.fixedFee;
+      const maxFee = recipient.maxFee;
 
       const feeToPay = (lovelace * 10n) / fee;
-      const adjustedFee = feeToPay < minAda ? fixedFee : feeToPay;
+      const adjustedFee = maxFee && feeToPay > maxFee ? maxFee : feeToPay;
 
       remainingLovelace -= adjustedFee;
       if (remainingLovelace <= 0n) {
