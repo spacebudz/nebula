@@ -52,12 +52,12 @@ pub type RoyaltyToken {
   asset_name: AssetName,
 }
 
-pub type NebulaDatum {
+pub type TradeDatum {
   Listing(ListingDetails)
   Bid(BiddingDetails)
 }
 
-pub type NebulaAction {
+pub type TradeAction {
   Sell
   Buy
   Cancel

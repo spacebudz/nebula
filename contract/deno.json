@@ -1,8 +1,9 @@
 {
   "tasks": {
     "build": "deno run -A build.ts",
-    "build:contract": "cd src/ghc && cabal run contract",
-    "test": "deno test --allow-env --allow-read --allow-net tests"
+    "build:contract": "cd src/nebula && aiken build",
+    "test": "deno test --allow-env --allow-read --allow-net tests",
+    "test:contract": "cd src/nebula && aiken check"
   },
   "lint": {
     "files": {

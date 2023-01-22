@@ -154,32 +154,8 @@ export class Contract {
     lovelace: Lovelace,
     privateListing?: Address | null,
   ): Promise<TxHash> {
-    const ownerAddress = await this.lucid.wallet.address();
-    const { stakeCredential } = this.lucid.utils
-      .getAddressDetails(
-        ownerAddress,
-      );
-
-    const adjustedTradeAddress = stakeCredential
-      ? this.lucid.utils.credentialToAddress(
-        this.lucid.utils.scriptHashToCredential(this.tradeHash),
-        stakeCredential,
-      )
-      : this.tradeAddress;
-
-    const tradeDatum: D.TradeDatum = {
-      Listing: [
-        {
-          owner: fromAddress(ownerAddress),
-          requestedLovelace: lovelace,
-          privateListing: privateListing ? fromAddress(privateListing) : null,
-        },
-      ],
-    };
-
-    const tx = await this.lucid.newTx().payToContract(adjustedTradeAddress, {
-      inline: Data.to<D.TradeDatum>(tradeDatum, D.TradeDatum),
-    }, { [toUnit(this.config.policyId, assetName)]: 1n })
+    const tx = await this.lucid.newTx()
+      .compose(await this._list(assetName, lovelace, privateListing))
       .complete();
 
     const txSigned = await tx.sign().complete();
@@ -238,41 +214,8 @@ export class Contract {
 
   /** Create a bid on a specific token within the collection. */
   async bid(assetName: string, lovelace: Lovelace): Promise<TxHash> {
-    const ownerAddress = await this.lucid.wallet.address();
-    const { stakeCredential } = this.lucid.utils.getAddressDetails(
-      ownerAddress,
-    );
-
-    const adjustedTradeAddress = stakeCredential
-      ? this.lucid.utils.credentialToAddress(
-        this.lucid.utils.scriptHashToCredential(this.tradeHash),
-        stakeCredential,
-      )
-      : this.tradeAddress;
-
-    const biddingDatum: D.TradeDatum = {
-      Bid: [{
-        owner: fromAddress(ownerAddress),
-        requestedOption: {
-          SpecificValue: [
-            fromAssets({ [toUnit(this.config.policyId, assetName)]: 1n }),
-          ],
-        },
-      }],
-    };
-
     const tx = await this.lucid.newTx()
-      .mintAssets({
-        [toUnit(this.mintPolicyId, fromText("Bid") + assetName)]: 1n,
-      })
-      .payToContract(adjustedTradeAddress, {
-        inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
-      }, {
-        lovelace,
-        [toUnit(this.mintPolicyId, fromText("Bid") + assetName)]: 1n,
-      })
-      .validFrom(this.lucid.utils.slotToUnixTime(1000))
-      .attachMintingPolicy(this.mintPolicy)
+      .compose(await this._bid(assetName, lovelace))
       .complete();
 
     const txSigned = await tx.sign().complete();
@@ -280,58 +223,15 @@ export class Contract {
   }
 
   /** Create a bid on any token within the collection. Optionally add constraints. */
-  async bidOpen(
+  async bidCollection(
     lovelace: Lovelace,
     constraints?: {
       types?: string[];
       traits?: { negation?: boolean; trait: string }[];
     },
   ): Promise<TxHash> {
-    const ownerAddress = await this.lucid.wallet.address();
-    const { stakeCredential } = this.lucid.utils.getAddressDetails(
-      ownerAddress,
-    );
-
-    const adjustedTradeAddress = stakeCredential
-      ? this.lucid.utils.credentialToAddress(
-        this.lucid.utils.scriptHashToCredential(this.tradeHash),
-        stakeCredential,
-      )
-      : this.tradeAddress;
-
-    const biddingDatum: D.TradeDatum = {
-      Bid: [{
-        owner: fromAddress(ownerAddress),
-        requestedOption: {
-          SpecificSymbolWithConstraints: [
-            this.config.policyId,
-            constraints?.types ? constraints.types.map(fromText) : [],
-            constraints?.traits
-              ? constraints.traits.map((
-                { negation, trait },
-              ) =>
-                negation
-                  ? { Excluded: [fromText(trait)] }
-                  : { Included: [fromText(trait)] }
-              )
-              : [],
-          ],
-        },
-      }],
-    };
-
     const tx = await this.lucid.newTx()
-      .mintAssets({
-        [toUnit(this.mintPolicyId, fromText("OpenBid"))]: 1n,
-      })
-      .payToContract(adjustedTradeAddress, {
-        inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
-      }, {
-        lovelace,
-        [toUnit(this.mintPolicyId, fromText("OpenBid"))]: 1n,
-      })
-      .validFrom(this.lucid.utils.slotToUnixTime(1000))
-      .attachMintingPolicy(this.mintPolicy)
+      .compose(await this._bidCollection(lovelace, constraints))
       .complete();
 
     const txSigned = await tx.sign().complete();
@@ -437,15 +337,15 @@ export class Contract {
 
   /**
    * Return the current bids for a specific token sorted in descending order by price.
-   * Or return the open bids on any token within the collection (use 'Open' as arg instead of an asset name).
+   * Or return the collection bids on any token within the collection (use 'Collection' as arg instead of an asset name).
    */
-  async getBids(assetName: "Open" | string): Promise<UTxO[]> {
+  async getBids(assetName: "Collection" | string): Promise<UTxO[]> {
     return (await this.lucid.utxosAtWithUnit(
       paymentCredentialOf(this.tradeAddress),
       toUnit(
         this.mintPolicyId,
-        assetName === "Open"
-          ? fromText("OpenBid")
+        assetName === "Collection"
+          ? fromText("CollBid")
           : fromText("Bid") + assetName,
       ),
     )).filter((utxo) => Object.keys(utxo.assets).length === 2).sort(sortDesc);
@@ -631,7 +531,136 @@ export class Contract {
     return txSigned.submit();
   }
 
-  private async _cancelListing(listingUtxo: UTxO): Promise<Tx> {
+  async _list(
+    assetName: string,
+    lovelace: Lovelace,
+    privateListing?: Address | null,
+  ): Promise<Tx> {
+    const ownerAddress = await this.lucid.wallet.address();
+    const { stakeCredential } = this.lucid.utils
+      .getAddressDetails(
+        ownerAddress,
+      );
+
+    // We include the stake key of the signer
+    const adjustedTradeAddress = stakeCredential
+      ? this.lucid.utils.credentialToAddress(
+        this.lucid.utils.scriptHashToCredential(this.tradeHash),
+        stakeCredential,
+      )
+      : this.tradeAddress;
+
+    const tradeDatum: D.TradeDatum = {
+      Listing: [
+        {
+          owner: fromAddress(ownerAddress),
+          requestedLovelace: lovelace,
+          privateListing: privateListing ? fromAddress(privateListing) : null,
+        },
+      ],
+    };
+
+    return this.lucid.newTx().payToContract(adjustedTradeAddress, {
+      inline: Data.to<D.TradeDatum>(tradeDatum, D.TradeDatum),
+    }, { [toUnit(this.config.policyId, assetName)]: 1n });
+  }
+
+  /** Create a bid on a specific token within the collection. */
+  async _bid(assetName: string, lovelace: Lovelace): Promise<Tx> {
+    const ownerAddress = await this.lucid.wallet.address();
+    const { stakeCredential } = this.lucid.utils.getAddressDetails(
+      ownerAddress,
+    );
+
+    // We include the stake key of the signer
+    const adjustedTradeAddress = stakeCredential
+      ? this.lucid.utils.credentialToAddress(
+        this.lucid.utils.scriptHashToCredential(this.tradeHash),
+        stakeCredential,
+      )
+      : this.tradeAddress;
+
+    const biddingDatum: D.TradeDatum = {
+      Bid: [{
+        owner: fromAddress(ownerAddress),
+        requestedOption: {
+          SpecificValue: [
+            fromAssets({ [toUnit(this.config.policyId, assetName)]: 1n }),
+          ],
+        },
+      }],
+    };
+
+    return this.lucid.newTx()
+      .mintAssets({
+        [toUnit(this.mintPolicyId, fromText("Bid") + assetName)]: 1n,
+      })
+      .payToContract(adjustedTradeAddress, {
+        inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
+      }, {
+        lovelace,
+        [toUnit(this.mintPolicyId, fromText("Bid") + assetName)]: 1n,
+      })
+      .validFrom(this.lucid.utils.slotToUnixTime(1000))
+      .attachMintingPolicy(this.mintPolicy);
+  }
+
+  /** Create a bid on any token within the collection. Optionally add constraints. */
+  async _bidCollection(
+    lovelace: Lovelace,
+    constraints?: {
+      types?: string[];
+      traits?: { negation?: boolean; trait: string }[];
+    },
+  ): Promise<Tx> {
+    const ownerAddress = await this.lucid.wallet.address();
+    const { stakeCredential } = this.lucid.utils.getAddressDetails(
+      ownerAddress,
+    );
+
+    const adjustedTradeAddress = stakeCredential
+      ? this.lucid.utils.credentialToAddress(
+        this.lucid.utils.scriptHashToCredential(this.tradeHash),
+        stakeCredential,
+      )
+      : this.tradeAddress;
+
+    const biddingDatum: D.TradeDatum = {
+      Bid: [{
+        owner: fromAddress(ownerAddress),
+        requestedOption: {
+          SpecificSymbolWithConstraints: [
+            this.config.policyId,
+            constraints?.types ? constraints.types.map(fromText) : [],
+            constraints?.traits
+              ? constraints.traits.map((
+                { negation, trait },
+              ) =>
+                negation
+                  ? { Excluded: [fromText(trait)] }
+                  : { Included: [fromText(trait)] }
+              )
+              : [],
+          ],
+        },
+      }],
+    };
+
+    return this.lucid.newTx()
+      .mintAssets({
+        [toUnit(this.mintPolicyId, fromText("CollBid"))]: 1n,
+      })
+      .payToContract(adjustedTradeAddress, {
+        inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
+      }, {
+        lovelace,
+        [toUnit(this.mintPolicyId, fromText("CollBid"))]: 1n,
+      })
+      .validFrom(this.lucid.utils.slotToUnixTime(1000))
+      .attachMintingPolicy(this.mintPolicy);
+  }
+
+  async _cancelListing(listingUtxo: UTxO): Promise<Tx> {
     const tradeDatum = await this.lucid.datumOf<D.TradeDatum>(
       listingUtxo,
       D.TradeDatum,
@@ -659,7 +688,7 @@ export class Contract {
       );
   }
 
-  private async _sell(
+  async _sell(
     bidUtxo: UTxO,
     assetName?: string,
   ): Promise<Tx> {
@@ -760,7 +789,7 @@ export class Contract {
       .attachMintingPolicy(this.mintPolicy);
   }
 
-  private async _cancelBid(bidUtxo: UTxO): Promise<Tx> {
+  async _cancelBid(bidUtxo: UTxO): Promise<Tx> {
     const tradeDatum = await this.lucid.datumOf<D.TradeDatum>(
       bidUtxo,
       D.TradeDatum,
@@ -795,7 +824,7 @@ export class Contract {
       .attachMintingPolicy(this.mintPolicy);
   }
 
-  private async _buy(listingUtxo: UTxO): Promise<Tx> {
+  async _buy(listingUtxo: UTxO): Promise<Tx> {
     const tradeDatum = await this.lucid.datumOf<D.TradeDatum>(
       listingUtxo,
       D.TradeDatum,

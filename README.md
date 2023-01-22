@@ -9,6 +9,7 @@
 ## Requirements
 
 - [Deno](https://deno.land/) $\ge$ Version 1.28.3
+- [Aiken](https://github.com/aiken-lang/aiken.git) (`cargo install --git https://github.com/aiken-lang/aiken.git --rev e36f91c39c3f7eb88abf7ae585e31b7614cae216`)
 
 ## Quick start
 
@@ -258,6 +259,12 @@ Runs on port `3000` by default. It hosts the database and allows you to make sim
 
 To execute the below listed commands you need to be in the `contract` directory.
 
+### Compile contract
+
+```
+deno task build:contract
+```
+
 ### Bundle for NPM/Node
 
 ```
@@ -265,12 +272,16 @@ deno task build
 ```
 Outputs a `dist` folder at `./contract/dist`.
 
-### Compile contract
-
-See [requirements](./contract/src/ghc/README.md).
+### Test off-chain endpoints
 
 ```
-deno task build:contract
+deno task test
+```
+
+### Test contract
+
+```
+deno task test:contract
 ```
 
 ### Protocol fee
