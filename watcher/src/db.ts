@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS bids (
 );
 
 CREATE TABLE IF NOT EXISTS sales (
-    id INTEGER AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     txHash TEXT, -- tx hash
     slot INTEGER NOT NULL,
     headerHash TEXT NOT NULL,
@@ -62,12 +62,11 @@ CREATE TABLE IF NOT EXISTS sales (
     assets TEXT NOT NULL, -- { [policy id + asset name] : quantity } (nft or semi fungible)
     lovelace INTEGER NOT NULL,
     buyer TEXT, -- ? payment credential bech32
-    seller TEXT, -- ? payment credential bech32
-    PRIMARY KEY (id, txHash)
+    seller TEXT -- ? payment credential bech32
 );
 
 CREATE TABLE IF NOT EXISTS cancellations (
-    id INTEGER AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     txHash TEXT, -- tx hash
     slot INTEGER NOT NULL,
     headerHash TEXT NOT NULL,
@@ -76,8 +75,7 @@ CREATE TABLE IF NOT EXISTS cancellations (
     policyId TEXT, -- ? policy id (open bid)
     constraints TEXT, -- ? constraints (open bid) e.g. {types: ["Lion"], traits: ["Axe", "Jo-Jo"]}
     owner TEXT NOT NULL, -- payment credential bech32
-    lovelace INTEGER NOT NULL,
-    PRIMARY KEY (id, txHash)
+    lovelace INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS events (

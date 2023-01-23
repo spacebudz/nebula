@@ -220,8 +220,8 @@ export class Contract {
     return txSigned.submit();
   }
 
-  /** Create a bid on any token within the collection. Optionally add constraints. */
-  async bidCollection(
+  /** Create an open bid on the collection. Optionally add constraints. */
+  async bidOpen(
     lovelace: Lovelace,
     constraints?: {
       types?: string[];
@@ -229,7 +229,7 @@ export class Contract {
     },
   ): Promise<TxHash> {
     const tx = await this.lucid.newTx()
-      .compose(await this._bidCollection(lovelace, constraints))
+      .compose(await this._bidOpen(lovelace, constraints))
       .complete();
 
     const txSigned = await tx.sign().complete();
@@ -338,15 +338,15 @@ export class Contract {
 
   /**
    * Return the current bids for a specific token sorted in descending order by price.
-   * Or return the collection bids on any token within the collection (use 'Collection' as arg instead of an asset name).
+   * Or return the collection bids on any token within the collection (use 'Open' as arg instead of an asset name).
    */
-  async getBids(assetName: "Collection" | string): Promise<UTxO[]> {
+  async getBids(assetName: "Open" | string): Promise<UTxO[]> {
     return (await this.lucid.utxosAtWithUnit(
       paymentCredentialOf(this.tradeAddress),
       toUnit(
         this.mintPolicyId,
-        assetName === "Collection"
-          ? fromText("CollBid")
+        assetName === "Open"
+          ? fromText("OpenBid")
           : fromText("Bid") + assetName,
       ),
     )).filter((utxo) => Object.keys(utxo.assets).length === 2).sort(sortDesc);
@@ -607,7 +607,7 @@ export class Contract {
   }
 
   /** Create a bid on any token within the collection. Optionally add constraints. */
-  async _bidCollection(
+  async _bidOpen(
     lovelace: Lovelace,
     constraints?: {
       types?: string[];
@@ -649,13 +649,13 @@ export class Contract {
 
     return this.lucid.newTx()
       .mintAssets({
-        [toUnit(this.mintPolicyId, fromText("CollBid"))]: 1n,
+        [toUnit(this.mintPolicyId, fromText("OpenBid"))]: 1n,
       })
       .payToContract(adjustedTradeAddress, {
         inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
       }, {
         lovelace,
-        [toUnit(this.mintPolicyId, fromText("CollBid"))]: 1n,
+        [toUnit(this.mintPolicyId, fromText("OpenBid"))]: 1n,
       })
       .validFrom(this.lucid.utils.slotToUnixTime(1000))
       .attachMintingPolicy(this.mintPolicy);

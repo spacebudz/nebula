@@ -211,12 +211,12 @@ Deno.test("Bid and cancel", async () => {
 
 Deno.test("Collection offer and sell", async () => {
   await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
-    await contract.bidCollection(11100000n, {
+    await contract.bidOpen(11100000n, {
       types: ["Cat"],
       traits: [{ trait: "Axe" }],
     }),
   );
-  const [bid] = await contract.getBids("Collection");
+  const [bid] = await contract.getBids("Open");
   try {
     await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
       await contract.sell([{ bidUtxo: bid, assetName: idToBud(25) }]),
@@ -247,7 +247,7 @@ Deno.test("Combine endpoints", async () => {
     .compose(await contract._bid(idToBud(237), 20000000n))
     .compose(await contract._cancelBid(bid))
     .compose(await contract._buy(listing))
-    .compose(await contract._bidCollection(200000000n, { types: ["Ape"] }))
+    .compose(await contract._bidOpen(200000000n, { types: ["Ape"] }))
     .complete();
   const signedTx = await doMultiple.sign().complete();
   await lucid.awaitTx(await signedTx.submit());

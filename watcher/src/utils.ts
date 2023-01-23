@@ -1,5 +1,5 @@
-import { Assets, Json, OutRef, Point, Unit } from "../../deps.ts";
-import { CheckpointType } from "./types.ts";
+import { Assets, Json, OutRef, Point } from "../../deps.ts";
+import { AssetsWithNumber, CheckpointType } from "./types.ts";
 import {
   isAbsolute,
   toFileUrl,
@@ -52,11 +52,9 @@ export function parseJSONSafe(text?: string | null): Json | null {
 
 export function assetsToAsssetsWithNumber(
   assets: Assets,
-): Record<Unit, number> {
+): AssetsWithNumber {
   return Object.fromEntries(
-    Object.entries(assets).map(([unit, quantity]) => (
-      [unit, Number(quantity)]
-    )),
+    Object.entries(assets).map(([unit, quantity]) => [unit, Number(quantity)]),
   );
 }
 

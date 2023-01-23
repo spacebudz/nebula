@@ -11,13 +11,9 @@ import {
 } from "./src/types.ts";
 
 export const config: Config = {
-  scriptHash: "485bbed9c7134b0368bab01916e0ac597278707686f5fc5f709bd8f3",
-  bidPolicyId: "93bada1436feec036338162558adf517b72603430b0e5c0a54d2c2a0",
+  scriptHash: "02a14fc56bb2b02b3461b54f8772fb533bee8d8b2098f392b10cb259",
+  bidPolicyId: "925f5a8ff5d128b8f5146be646d0a4858536fa2fc55ee864c14e492f",
   projects: ["8da99f2c04edd1c54993c74a36e8da8d9985334d9429d881e72e7e41"],
-  startPoint: {
-    hash: "92c398358efc8c3b55d230c9e2355a9421b11097da3e262373fba0c2765a92a2",
-    slot: 17781828,
-  },
 };
 
 export function eventsHandler(events: MarketplaceEvent[]) {
@@ -95,4 +91,8 @@ export function eventsHandler(events: MarketplaceEvent[]) {
       }
     }
   }
+}
+
+export function onChange() {
+  // optionally handle db changes
 }

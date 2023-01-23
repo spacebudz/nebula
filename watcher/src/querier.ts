@@ -70,7 +70,7 @@ serve((req) => {
       });
     }
     const listings = db.queryEntries(
-      sql`SELECT * FROM listings WHERE listingType = 'ListingSingle' AND nfts LIKE :policyId AND spent = FALSE`,
+      sql`SELECT listings.* FROM listings, json_each(assets) WHERE listingType = 'ListingSingle' AND json_each.key LIKE :policyId AND spent = FALSE`,
       { policyId: policyId + "%" },
     );
     return new Response(JSON.stringify(listings), { status: 200 });
@@ -83,7 +83,7 @@ serve((req) => {
       });
     }
     const bids = db.queryEntries(
-      sql`SELECT * FROM bids WHERE (bidType = 'BidSingle' AND nfts LIKE :policyIdStartsWith) OR (bidType = 'BidOpen' AND policyId = :policyId) AND spent = FALSE`,
+      sql`SELECT bids.* FROM bids, json_each(IFNULL(assets,'null')) WHERE (bidType = 'BidSingle' AND json_each.key LIKE :policyIdStartsWith) OR (bidType = 'BidOpen' AND policyId = :policyId) AND spent = FALSE`,
       { policyId, policyIdStartsWith: policyId + "%" },
     );
     return new Response(JSON.stringify(bids), { status: 200 });
