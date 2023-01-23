@@ -39,7 +39,6 @@ const txHash = await Contract.createRoyalty(
     recipient:
       "addr...",
     fee: 0.016, // 1.6%
-    fixedFee: 1500000n, // lovelace
   }], 
   owner,
 );
