@@ -1,4 +1,4 @@
-import { Json, OutRef, Point } from "../../deps.ts";
+import { Assets, Json, OutRef, Point, Unit } from "../../deps.ts";
 import { CheckpointType } from "./types.ts";
 import {
   isAbsolute,
@@ -42,12 +42,22 @@ export function isEmptyString(str: string | null | undefined): boolean {
 // deno-lint-ignore no-explicit-any
 export const pipe = (...args: any[]) => args.reduce((acc, el) => el(acc));
 
-export function parseJSONSafe(text?: string | null): Json {
+export function parseJSONSafe(text?: string | null): Json | null {
   try {
     return JSON.parse(text!);
   } catch (_e) {
-    return text;
+    return text ? text : null;
   }
+}
+
+export function assetsToAsssetsWithNumber(
+  assets: Assets,
+): Record<Unit, number> {
+  return Object.fromEntries(
+    Object.entries(assets).map(([unit, quantity]) => (
+      [unit, Number(quantity)]
+    )),
+  );
 }
 
 export function transformArrayToString(

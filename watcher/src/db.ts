@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS listings (
     headerHash TEXT NOT NULL,
     spent BOOLEAN DEFAULT FALSE,
     listingType TEXT NOT NULL, -- SingleListing | BundleListing
-    nfts TEXT NOT NULl, -- policy id + asset name | [policy id + asset name]
+    assets TEXT NOT NULl, -- { [policy id + asset name] : quantity } (nft or semi fungible)
     owner TEXT NOT NULL, -- payment credential bech32
     lovelace INTEGER NOT NULL,
     privateListing TEXT -- ? payment credential bech32
@@ -46,8 +46,7 @@ CREATE TABLE IF NOT EXISTS bids (
     headerHash TEXT NOT NULL,
     spent BOOLEAN DEFAULT FALSE,
     bidType TEXT NOT NULL, -- BidSingle | BidBundle | BidOpen
-    -- Either singe/bundle bid or open bid with optional constraints
-    nfts TEXT, -- ? policy id + asset name | [policy id + asset name] (single/bundle bid)
+    assets TEXT, -- ? { [policy id + asset name] : quantity } (nft or semi fungible)
     policyId TEXT, -- ? only policy id (open bid)
     constraints TEXT, -- ? constraints (open bid) e.g. {types: ["Lion"], traits: ["Axe", "Jo-Jo"]}
     owner TEXT NOT NULL, -- payment credential bech32
@@ -55,28 +54,30 @@ CREATE TABLE IF NOT EXISTS bids (
 );
 
 CREATE TABLE IF NOT EXISTS sales (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    txHash TEXT NOT NULL, -- tx hash
+    id INTEGER AUTOINCREMENT,
+    txHash TEXT, -- tx hash
     slot INTEGER NOT NULL,
     headerHash TEXT NOT NULL,
     saleType TEXT NOT NULL, -- BuySingle | BuyBundle | SellSingle | SellBundle
-    nfts TEXT NOT NULL, -- policy id + asset name | [policy id + asset name]
+    assets TEXT NOT NULL, -- { [policy id + asset name] : quantity } (nft or semi fungible)
     lovelace INTEGER NOT NULL,
     buyer TEXT, -- ? payment credential bech32
-    seller TEXT -- ? payment credential bech32
+    seller TEXT, -- ? payment credential bech32
+    PRIMARY KEY (id, txHash)
 );
 
 CREATE TABLE IF NOT EXISTS cancellations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    txHash TEXT NOT NULL, -- tx hash
+    id INTEGER AUTOINCREMENT,
+    txHash TEXT, -- tx hash
     slot INTEGER NOT NULL,
     headerHash TEXT NOT NULL,
     cancelType TEXT NOT NULL, -- CancelBidSingle | CancelBidBundle | CancelBidOpen | CancelListingSingle | CancelListingBundle
-    nfts TEXT, -- ? policy id + asset name | [policy id + asset name] (single/bundle )
+    assets TEXT, -- ? { [policy id + asset name] : quantity } (nft or semi fungible)
     policyId TEXT, -- ? policy id (open bid)
     constraints TEXT, -- ? constraints (open bid) e.g. {types: ["Lion"], traits: ["Axe", "Jo-Jo"]}
     owner TEXT NOT NULL, -- payment credential bech32
-    lovelace INTEGER NOT NULL
+    lovelace INTEGER NOT NULL,
+    PRIMARY KEY (id, txHash)
 );
 
 CREATE TABLE IF NOT EXISTS events (
@@ -88,13 +89,13 @@ CREATE TABLE IF NOT EXISTS events (
 );
 
 CREATE VIEW IF NOT EXISTS activity AS SELECT * FROM (
-SELECT slot, SUBSTRING(outputReference, 0, 65) AS txHash, nfts, listingType AS activityType, lovelace, NULL AS policyId FROM listings
+SELECT slot, SUBSTRING(outputReference, 0, 65) AS txHash, assets, listingType AS activityType, lovelace, NULL AS policyId FROM listings
 UNION 
-SELECT slot, SUBSTRING(outputReference, 0, 65) AS txHash, nfts, bidType AS activityType, lovelace, policyId FROM bids
+SELECT slot, SUBSTRING(outputReference, 0, 65) AS txHash, assets, bidType AS activityType, lovelace, policyId FROM bids
 UNION
-SELECT slot, txHash, nfts, saleType AS activityType, lovelace, NULL AS policyId FROM sales
+SELECT slot, txHash, assets, saleType AS activityType, lovelace, NULL AS policyId FROM sales
 UNION
-SELECT slot, txHash, nfts, cancelType AS activityType, lovelace, policyId FROM cancellations
+SELECT slot, txHash, assets, cancelType AS activityType, lovelace, policyId FROM cancellations
 ) ORDER BY slot DESC limit 100;
 
 CREATE TABLE IF NOT EXISTS checkpoint (
@@ -135,7 +136,7 @@ class MarketplaceDB {
         headerHash: string;
         spent: boolean;
         bidType: string;
-        nfts?: string;
+        assets?: string;
         policyId?: string;
         constraints?: string;
         owner: string;
@@ -148,7 +149,7 @@ class MarketplaceDB {
         outRef: fromMergedOutRef(q.outputReference),
         point: { hash: q.headerHash, slot: q.slot },
         type: q.bidType as BidEventType,
-        nfts: parseJSONSafe(q.nfts),
+        assets: parseJSONSafe(q.assets),
         policyId: q.policyId,
         constraints: parseJSONSafe(q.constraints),
         owner: q.owner,
@@ -160,30 +161,22 @@ class MarketplaceDB {
   }
 
   addBid(
-    { outRef, point, type, nfts, policyId, constraints, owner, lovelace }:
+    { outRef, point, type, assets, policyId, constraints, owner, lovelace }:
       BidDB,
   ) {
-    const stringifiedNfts = nfts
-      ? nfts instanceof Array
-        ? nfts.length > 1 ? JSON.stringify(nfts) : nfts[0]
-        : nfts
-      : null;
-    const stringifiedConstraints = constraints
-      ? JSON.stringify(constraints)
-      : null;
     this.db.query(
       sql`
-      INSERT INTO bids (outputReference, slot, headerHash, bidType, nfts, policyId, constraints, owner, lovelace) 
-      VALUES (:outRef, :slot, :hash, :type, :nfts, :policyId, :constraints, :owner, :lovelace)
+      INSERT INTO bids (outputReference, slot, headerHash, bidType, assets, policyId, constraints, owner, lovelace) 
+      VALUES (:outRef, :slot, :hash, :type, :assets, :policyId, :constraints, :owner, :lovelace)
     `,
       {
         outRef: toMergedOutRef(outRef),
         slot: point.slot,
         hash: point.hash,
         type,
-        nfts: stringifiedNfts,
+        assets: assets ? JSON.stringify(assets) : null,
         policyId,
-        constraints: stringifiedConstraints,
+        constraints: constraints ? JSON.stringify(constraints) : null,
         owner,
         lovelace,
       },
@@ -200,22 +193,19 @@ class MarketplaceDB {
   }
 
   addListing(
-    { outRef, point, type, nfts, owner, lovelace, privateListing }: ListingDB,
+    { outRef, point, type, assets, owner, lovelace, privateListing }: ListingDB,
   ) {
-    const stringifiedNfts = nfts instanceof Array
-      ? nfts.length > 1 ? JSON.stringify(nfts) : nfts[0]
-      : nfts;
     this.db.query(
       sql`
-      INSERT INTO listings (outputReference, slot, headerHash, listingType, nfts, owner, lovelace, privateListing) 
-      VALUES (:outRef, :slot, :hash, :type, :nfts, :owner, :lovelace, :privateListing)
+      INSERT INTO listings (outputReference, slot, headerHash, listingType, assets, owner, lovelace, privateListing) 
+      VALUES (:outRef, :slot, :hash, :type, :assets, :owner, :lovelace, :privateListing)
     `,
       {
         outRef: toMergedOutRef(outRef),
         slot: point.slot,
         hash: point.hash,
         type,
-        nfts: stringifiedNfts,
+        assets: assets ? JSON.stringify(assets) : null,
         owner,
         lovelace,
         privateListing,
@@ -240,7 +230,7 @@ class MarketplaceDB {
         headerHash: string;
         spent: boolean;
         listingType: string;
-        nfts: string;
+        assets: string;
         owner: string;
         lovelace: number;
         privateListing?: string;
@@ -252,7 +242,7 @@ class MarketplaceDB {
         outRef: fromMergedOutRef(q.outputReference),
         point: { hash: q.headerHash, slot: q.slot },
         type: q.listingType as ListingEventType,
-        nfts: parseJSONSafe(q.nfts),
+        assets: parseJSONSafe(q.assets),
         owner: q.owner,
         lovelace: q.lovelace,
         privateListing: q.privateListing,
@@ -262,21 +252,18 @@ class MarketplaceDB {
     }
   }
 
-  addSale({ txHash, point, type, nfts, lovelace, buyer, seller }: SaleDB) {
-    const stringifiedNfts = nfts instanceof Array
-      ? nfts.length > 1 ? JSON.stringify(nfts) : nfts[0]
-      : nfts;
+  addSale({ txHash, point, type, assets, lovelace, buyer, seller }: SaleDB) {
     this.db.query(
       sql`
-      INSERT INTO sales (txHash, slot, headerHash, saleType, nfts, lovelace, buyer, seller) 
-      VALUES (:txHash, :slot, :hash, :type, :nfts, :lovelace, :buyer, :seller)
+      INSERT INTO sales (txHash, slot, headerHash, saleType, assets, lovelace, buyer, seller) 
+      VALUES (:txHash, :slot, :hash, :type, :assets, :lovelace, :buyer, :seller)
     `,
       {
         txHash,
         slot: point.slot,
         hash: point.hash,
         type,
-        nfts: stringifiedNfts,
+        assets: JSON.stringify(assets),
         lovelace,
         buyer,
         seller,
@@ -285,28 +272,22 @@ class MarketplaceDB {
   }
 
   addCancellation(
-    { txHash, point, type, nfts, policyId, constraints, owner, lovelace }:
+    { txHash, point, type, assets, policyId, constraints, owner, lovelace }:
       CancellationDB,
   ) {
-    const stringifiedNfts = nfts instanceof Array
-      ? nfts.length > 1 ? JSON.stringify(nfts) : nfts[0]
-      : nfts;
-    const stringifiedConstraints = constraints
-      ? JSON.stringify(constraints)
-      : null;
     this.db.query(
       sql`
-    INSERT INTO cancellations (txHash, slot, headerHash, cancelType, nfts, policyId, constraints, owner, lovelace) 
-    VALUES (:txHash, :slot, :hash, :type, :nfts, :policyId, :constraints, :owner, :lovelace)
+    INSERT INTO cancellations (txHash, slot, headerHash, cancelType, assets, policyId, constraints, owner, lovelace) 
+    VALUES (:txHash, :slot, :hash, :type, :assets, :policyId, :constraints, :owner, :lovelace)
   `,
       {
         txHash,
         slot: point.slot,
         hash: point.hash,
         type,
-        nfts: stringifiedNfts,
+        assets: assets ? JSON.stringify(assets) : null,
         policyId,
-        constraints: stringifiedConstraints,
+        constraints: constraints ? JSON.stringify(constraints) : null,
         owner,
         lovelace,
       },

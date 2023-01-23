@@ -19,6 +19,12 @@ export type Config = {
   startPoint?: Point;
 };
 
+/**
+ * We cannot and do not need to store asset quantities in bigint format.
+ * Number is sufficient enough and can easily be converted from and to json and stored in the sqlite database.
+ */
+export type AssetsWithNumber = Record<Unit, number>;
+
 export type MarketplaceEvent = {
   type: MarketplaceEventType;
   data: Json;
@@ -57,7 +63,7 @@ export type ListingDB = {
   outRef: OutRef;
   point: Point;
   type: ListingEventType;
-  nfts: Unit | Unit[];
+  assets: AssetsWithNumber;
   /** Bech32 payment credential */
   owner: string;
   /** We can savely use number here and don't need bigint. */
@@ -70,7 +76,7 @@ export type BidDB = {
   outRef: OutRef;
   point: Point;
   type: BidEventType;
-  nfts?: Unit | Unit[] | null;
+  assets?: AssetsWithNumber | null;
   policyId?: PolicyId | null;
   constraints?: Json | null;
   /** Bech32 payment credential */
@@ -83,7 +89,7 @@ export type SaleDB = {
   txHash: TxHash;
   point: Point;
   type: BuyEventType | SellEventType;
-  nfts: Unit | Unit[];
+  assets: AssetsWithNumber;
   /** We can savely use number here and don't need bigint. */
   lovelace: number;
   /** Bech32 payment credential */
@@ -96,7 +102,7 @@ export type CancellationDB = {
   txHash: TxHash;
   point: Point;
   type: CancelListingEventType | CancelBidEventType;
-  nfts?: Unit | Unit[] | null;
+  assets?: AssetsWithNumber | null;
   policyId?: PolicyId | null;
   constraints?: Json | null;
   /** Bech32 payment credential */
@@ -105,20 +111,10 @@ export type CancellationDB = {
   lovelace: number;
 };
 
-export type BidAndListingSingleEventData = {
+export type BidAndListingEventData = {
   txHash: TxHash;
   slot: Slot;
-  nfts: Unit;
-  /** Bech32 payment credential */
-  owner: string;
-  /** We can savely use number here and don't need bigint. */
-  lovelace: number;
-};
-
-export type BidAndListingBundleEventData = {
-  txHash: TxHash;
-  slot: Slot;
-  nfts: Unit | Unit[];
+  assets: AssetsWithNumber;
   /** Bech32 payment credential */
   owner: string;
   /** We can savely use number here and don't need bigint. */
@@ -136,22 +132,10 @@ export type BidOpenEventData = {
   lovelace: number;
 };
 
-export type SaleSingleEventData = {
+export type SaleEventData = {
   txHash: TxHash;
   slot: Slot;
-  nfts: Unit;
-  /** We can savely use number here and don't need bigint. */
-  lovelace: number;
-  /** Bech32 payment credential */
-  seller: string;
-  /** Bech32 payment credential */
-  buyer: string;
-};
-
-export type SaleBundleEventData = {
-  txHash: TxHash;
-  slot: Slot;
-  nfts: Unit | Unit[];
+  assets: AssetsWithNumber;
   /** We can savely use number here and don't need bigint. */
   lovelace: number;
   /** Bech32 payment credential */

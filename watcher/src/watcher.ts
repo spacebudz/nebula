@@ -4,16 +4,19 @@ import {
   Data,
   Datum,
   fromHex,
+  fromText,
   getAddressDetails,
   OutRef,
   Point,
   PolicyId,
+  toLabel,
   toText,
   TxShelleyCompatible,
 } from "../../deps.ts";
-import { pipe, transformArrayToString } from "./utils.ts";
+import { assetsToAsssetsWithNumber, pipe } from "./utils.ts";
 import { toAssets, toOwner } from "../../common/utils.ts";
 import {
+  AssetsWithNumber,
   BuyEventType,
   CancelBidEventType,
   CancelListingEventType,
@@ -58,20 +61,26 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
       const lovelace = parseInt(output.value.coins.toString());
 
       if ("SpecificValue" in bidDetails.requestedOption) {
-        const nfts = Object.keys(toAssets(
-          bidDetails.requestedOption.SpecificValue[0],
-        )).filter((unit) => unit !== "lovelace");
+        const assets: AssetsWithNumber = assetsToAsssetsWithNumber(
+          Object.fromEntries(
+            Object.entries(toAssets(
+              bidDetails.requestedOption.SpecificValue[0],
+            )).filter(([unit, _]) => unit !== "lovelace"),
+          ),
+        );
+
+        const units = Object.keys(assets);
 
         // We only track valid specific bids. We allow combinations of whitelisted project policy ids.
         if (
-          !nfts.every((unit) =>
+          !units.every((unit) =>
             config.projects.some((projectPolicyId) =>
               unit.startsWith(projectPolicyId)
             )
           )
         ) continue;
 
-        const type: MarketplaceEventType = nfts.length > 1
+        const type: MarketplaceEventType = units.length > 1
           ? "BidBundle"
           : "BidSingle";
 
@@ -79,7 +88,7 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
           outRef,
           point,
           type,
-          nfts,
+          assets,
           owner,
           lovelace,
         });
@@ -88,7 +97,7 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
           data: {
             txHash: outRef.txHash,
             slot: point.slot,
-            nfts: transformArrayToString(nfts),
+            assets: assets,
             owner,
             lovelace,
           },
@@ -163,20 +172,28 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
 
       const listingDetails = tradeDatum.Listing[0];
 
-      const nfts = Object.keys(output.value.assets!).map((unit) =>
-        unit.replace(".", "")
-      ).filter((unit) => !unit.endsWith("ScriptOwner"));
+      const assets: AssetsWithNumber = assetsToAsssetsWithNumber(
+        Object.fromEntries(
+          Object.entries(output.value.assets!).map((
+            [unit, quantity],
+          ) => [unit.replace(".", ""), quantity] as [string, bigint]).filter((
+            [unit, _],
+          ) => !unit.endsWith(toLabel(2) + fromText("ScriptOwner"))),
+        ),
+      );
+
+      const units = Object.keys(assets);
 
       // We only track valid listings. We allow combinations of whitelisted project policy ids.
       if (
-        !nfts.every((unit) =>
+        !units.every((unit) =>
           config.projects.some((projectPolicyId) =>
             unit.startsWith(projectPolicyId)
           )
         )
       ) continue;
 
-      const type: MarketplaceEventType = nfts.length > 1
+      const type: MarketplaceEventType = units.length > 1
         ? "ListingBundle"
         : "ListingSingle";
 
@@ -194,7 +211,7 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
         outRef,
         point,
         type,
-        nfts,
+        assets,
         owner,
         lovelace,
         privateListing,
@@ -205,7 +222,7 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
         data: {
           txHash: outRef.txHash,
           slot: point.slot,
-          nfts: transformArrayToString(nfts),
+          assets,
           owner,
           lovelace,
         },
@@ -262,16 +279,19 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
           },
         }, D.PaymentDatum);
 
-        const nfts = bid.policyId
-          ? tx.body.outputs.reduce((nfts, utxo) => {
-            const unit = Object.keys(utxo!.value.assets || {}).find((unit) =>
-              unit.startsWith(bid.policyId!) &&
-              utxo!.value.assets![unit] > 0 &&
-              utxo.datum === paymentDatum
-            );
-            return unit ? unit.replace(".", "") : nfts;
-          }, bid.nfts)
-          : bid.nfts;
+        const assets = bid.policyId
+          ? tx.body.outputs.reduce((assets, utxo) => {
+            const asset = Object.entries(utxo!.value.assets || {})
+              .find(([unit, _]) =>
+                unit.startsWith(bid.policyId!) &&
+                utxo!.value.assets![unit] > 0 &&
+                utxo.datum === paymentDatum
+              );
+            return asset
+              ? { [asset[0].replace(".", "")]: Number(asset[1]) }
+              : assets;
+          }, bid.assets)
+          : bid.assets;
 
         /**
          * If there is no vkey signature then we cannot identify the seller. For now we leave it as null/unknown.
@@ -288,7 +308,7 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
           txHash: tx.id,
           point,
           type,
-          nfts: nfts!,
+          assets: assets!,
           lovelace: bid.lovelace,
           seller,
           buyer: bid.owner,
@@ -298,7 +318,7 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
           data: {
             txHash: tx.id,
             slot: point.slot,
-            nfts,
+            assets,
             lovelace: bid.lovelace,
             seller,
             buyer: bid.owner,
@@ -336,7 +356,7 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
           txHash: tx.id,
           point,
           type,
-          nfts: listing.nfts,
+          assets: listing.assets,
           lovelace: listing.lovelace,
           seller: listing.owner,
           buyer,
@@ -346,7 +366,7 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
           data: {
             txHash: tx.id,
             slot: point.slot,
-            nfts: listing.nfts,
+            assets: listing.assets,
             lovelace: listing.lovelace,
             seller: listing.owner,
             buyer,
@@ -371,7 +391,7 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
             txHash: tx.id,
             point,
             type,
-            nfts: listing.nfts,
+            assets: listing.assets,
             owner: listing.owner,
             lovelace: listing.lovelace,
           });
@@ -381,7 +401,7 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
               txHash: tx.id,
               slot: point.slot,
               owner: listing.owner,
-              nfts: listing.nfts,
+              assets: listing.assets,
               lovelace: listing.lovelace,
             },
           }, point);
@@ -405,7 +425,7 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
             txHash: tx.id,
             point,
             type,
-            nfts: bid.nfts,
+            assets: bid.assets,
             policyId: bid.policyId,
             constraints: bid.constraints,
             owner: bid.owner,
@@ -417,7 +437,7 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
               txHash: tx.id,
               slot: point.slot,
               owner: bid.owner,
-              nfts: bid.nfts,
+              assets: bid.assets,
               policyId: bid.policyId,
               constraints: bid.constraints,
               lovelace: bid.lovelace,

@@ -3,13 +3,11 @@
 // Sample config (preprod network)
 
 import {
-  BidAndListingBundleEventData,
-  BidAndListingSingleEventData,
+  BidAndListingEventData,
   BidOpenEventData,
   Config,
   MarketplaceEvent,
-  SaleBundleEventData,
-  SaleSingleEventData,
+  SaleEventData,
 } from "./src/types.ts";
 
 export const config: Config = {
@@ -26,7 +24,7 @@ export function eventsHandler(events: MarketplaceEvent[]) {
   for (const event of events) {
     switch (event.type) {
       case "BidBundle": {
-        const eventData: BidAndListingBundleEventData = event.data;
+        const eventData: BidAndListingEventData = event.data;
         // Your logic here
         break;
       }
@@ -36,42 +34,42 @@ export function eventsHandler(events: MarketplaceEvent[]) {
         break;
       }
       case "BidSingle": {
-        const eventData: BidAndListingSingleEventData = event.data;
+        const eventData: BidAndListingEventData = event.data;
         // Your logic here
         break;
       }
       case "ListingBundle": {
-        const eventData: BidAndListingBundleEventData = event.data;
+        const eventData: BidAndListingEventData = event.data;
         // Your logic here
         break;
       }
       case "ListingSingle": {
-        const eventData: BidAndListingSingleEventData = event.data;
+        const eventData: BidAndListingEventData = event.data;
         // Your logic here
         break;
       }
       case "BuyBundle": {
-        const eventData: SaleBundleEventData = event.data;
+        const eventData: SaleEventData = event.data;
         // Your logic here
         break;
       }
       case "BuySingle": {
-        const eventData: SaleSingleEventData = event.data;
+        const eventData: SaleEventData = event.data;
         // Your logic here
         break;
       }
       case "SellBundle": {
-        const eventData: SaleBundleEventData = event.data;
+        const eventData: SaleEventData = event.data;
         // Your logic here
         break;
       }
       case "SellSingle": {
-        const eventData: SaleSingleEventData = event.data;
+        const eventData: SaleEventData = event.data;
         // Your logic here
         break;
       }
       case "CancelBidBundle": {
-        const eventData: BidAndListingBundleEventData = event.data;
+        const eventData: BidAndListingEventData = event.data;
         // Your logic here
         break;
       }
@@ -81,17 +79,17 @@ export function eventsHandler(events: MarketplaceEvent[]) {
         break;
       }
       case "CancelBidSingle": {
-        const eventData: BidAndListingSingleEventData = event.data;
+        const eventData: BidAndListingEventData = event.data;
         // Your logic here
         break;
       }
       case "CancelListingBundle": {
-        const eventData: BidAndListingBundleEventData = event.data;
+        const eventData: BidAndListingEventData = event.data;
         // Your logic here
         break;
       }
       case "CancelListingSingle": {
-        const eventData: BidAndListingSingleEventData = event.data;
+        const eventData: BidAndListingEventData = event.data;
         // Your logic here
         break;
       }
