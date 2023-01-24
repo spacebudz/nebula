@@ -93,9 +93,3 @@ CREATE TABLE IF NOT EXISTS checkpoint (
     cleanupPoint TEXT NOT NULL
 );
 ```
-
-## Todo
-
-- [ ] Allow not only NFTs. Right now we do assume each asset listed has
-      quantity 1. Supporting semi-fungible tokens with a higher quantity would
-      also make sense.
