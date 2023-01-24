@@ -1,6 +1,7 @@
 import {
   Address,
   applyParamsToScript,
+  Assets,
   Data,
   Datum,
   fromText,
@@ -35,7 +36,7 @@ import {
   toAssets,
 } from "../../common/utils.ts";
 import * as D from "../../common/contract.types.ts";
-import { ContractConfig, RoyaltyRecipient } from "./types.ts";
+import { Constraints, ContractConfig, RoyaltyRecipient } from "./types.ts";
 import { budConfig } from "./config.ts";
 
 export class Contract {
@@ -144,12 +145,12 @@ export class Contract {
   }
 
   async list(
-    assetName: string,
+    assetNames: string[],
     lovelace: Lovelace,
     privateListing?: Address | null,
   ): Promise<TxHash> {
     const tx = await this.lucid.newTx()
-      .compose(await this._list(assetName, lovelace, privateListing))
+      .compose(await this._list(assetNames, lovelace, privateListing))
       .complete();
 
     const txSigned = await tx.sign().complete();
@@ -210,10 +211,10 @@ export class Contract {
     return txSigned.submit();
   }
 
-  /** Create a bid on a specific token within the collection. */
-  async bid(assetName: string, lovelace: Lovelace): Promise<TxHash> {
+  /** Create a bid on a specific token or on a bundle within the collection. */
+  async bid(assetNames: string[], lovelace: Lovelace): Promise<TxHash> {
     const tx = await this.lucid.newTx()
-      .compose(await this._bid(assetName, lovelace))
+      .compose(await this._bid(assetNames, lovelace))
       .complete();
 
     const txSigned = await tx.sign().complete();
@@ -236,6 +237,24 @@ export class Contract {
     return txSigned.submit();
   }
 
+  async bidSwap(
+    offering: {
+      lovelace?: Lovelace;
+      assetNames: string[];
+    },
+    requesting: {
+      constraints?: Constraints;
+      specific?: string[];
+    },
+  ): Promise<TxHash> {
+    const tx = await this.lucid.newTx()
+      .compose(await this._bidSwap(offering, requesting))
+      .complete();
+
+    const txSigned = await tx.sign().complete();
+    return txSigned.submit();
+  }
+
   async changeBid(bidUtxo: UTxO, lovelace: Lovelace): Promise<TxHash> {
     const tradeDatum = await this.lucid.datumOf<D.TradeDatum>(
       bidUtxo,
@@ -243,6 +262,10 @@ export class Contract {
     );
     if (!("Bid" in tradeDatum)) {
       throw new Error("Not a bidding UTxO");
+    }
+
+    if (Object.keys(bidUtxo.assets).length > 2) {
+      throw new Error("Cannot change swap bids.");
     }
 
     const owner: Address = toAddress(tradeDatum.Bid[0].owner, this.lucid);
@@ -333,23 +356,45 @@ export class Contract {
         this.config.policyId,
         assetName,
       ),
-    )).filter((utxo) => Object.keys(utxo.assets).length === 2).sort(sortAsc);
+    )).filter((utxo) => {
+      const units = Object.keys(utxo.assets).filter((unit) =>
+        unit !== "lovelace"
+      );
+      return units.every((unit) => unit.startsWith(this.config.policyId)) &&
+        units.length >= 1;
+    }).sort(sortAsc);
   }
 
   /**
    * Return the current bids for a specific token sorted in descending order by price.
-   * Or return the collection bids on any token within the collection (use 'Open' as arg instead of an asset name).
+   * Or return the collection bids on any token within the collection (use 'Open' as option).
+   * Or return swap bids (use 'Swap' as option).
    */
-  async getBids(assetName: "Open" | string): Promise<UTxO[]> {
+  async getBids(
+    option: "Bundle" | "Open" | "Swap" | { assetName: string },
+  ): Promise<UTxO[]> {
+    const bidAssetName = (() => {
+      if (option === "Open") return fromText("BidOpen");
+      if (option === "Swap") return fromText("BidSwap");
+      if (option === "Bundle") return fromText("BidBundle");
+      return fromText("Bid") + option.assetName;
+    })();
     return (await this.lucid.utxosAtWithUnit(
       paymentCredentialOf(this.tradeAddress),
       toUnit(
         this.mintPolicyId,
-        assetName === "Open"
-          ? fromText("OpenBid")
-          : fromText("Bid") + assetName,
+        bidAssetName,
       ),
-    )).filter((utxo) => Object.keys(utxo.assets).length === 2).sort(sortDesc);
+    )).filter((utxo) => {
+      const units = Object.keys(utxo.assets).filter((unit) =>
+        unit !== "lovelace"
+      );
+      return units.every((unit) =>
+        unit.startsWith(this.mintPolicyId) ||
+        unit.startsWith(this.config.policyId)
+      ) &&
+        (option === "Swap" ? units.length > 1 : units.length === 1);
+    }).sort(sortDesc);
   }
 
   /**
@@ -393,11 +438,18 @@ export class Contract {
     const royaltyUnit = toUnit(royaltyPolicyId, fromText("Royalty"), 500);
 
     const royaltyInfo: D.RoyaltyInfo = {
-      recipients: royaltyRecipients.map((recipient) => ({
-        address: fromAddress(recipient.address),
-        fee: BigInt(Math.floor(1 / (recipient.fee / 10))),
-        maxFee: recipient.maxFee || null,
-      })),
+      recipients: royaltyRecipients.map((recipient) => {
+        if (
+          recipient.minFee && recipient.maxFee &&
+          recipient.minFee > recipient.maxFee
+        ) throw new Error("Min fee cannot be greater than max fee!");
+        return {
+          address: fromAddress(recipient.address),
+          fee: BigInt(Math.floor(1 / (recipient.fee / 10))),
+          minFee: recipient.minFee || null,
+          maxFee: recipient.maxFee || null,
+        };
+      }),
     };
 
     const tx = await lucid.newTx()
@@ -428,11 +480,13 @@ export class Contract {
     if (!this.config.owner) {
       throw new Error("No owner specified. Specify an owner in the config.");
     }
+    const credential = paymentCredentialOf(this.config.owner);
+    if (credential.type !== "Key") {
+      throw new Error("Owner needs to be a public key address.");
+    }
     const deployScript = this.lucid.utils.nativeScriptFromJson({
       type: "sig",
-      keyHash: this.lucid.utils.getAddressDetails(this.config.owner)
-        .paymentCredential
-        ?.hash!,
+      keyHash: credential.hash,
     });
 
     const ownerAddress = this.lucid.utils.validatorToAddress(deployScript);
@@ -495,10 +549,13 @@ export class Contract {
     if (!this.config.owner) {
       throw new Error("No owner specified. Specify an owner in the config.");
     }
+    const credential = paymentCredentialOf(this.config.owner);
+    if (credential.type !== "Key") {
+      throw new Error("Owner needs to be a public key address.");
+    }
     const ownersScript = this.lucid.utils.nativeScriptFromJson({
       type: "sig",
-      keyHash: this.lucid.utils.getAddressDetails(this.config.owner)
-        .paymentCredential?.hash!,
+      keyHash: credential.hash,
     });
     const ownerAddress = this.lucid.utils.validatorToAddress(ownersScript);
 
@@ -513,6 +570,7 @@ export class Contract {
       recipients: royaltyRecipients.map((recipient) => ({
         address: fromAddress(recipient.address),
         fee: BigInt(Math.floor(1 / (recipient.fee / 10))),
+        minFee: recipient.minFee || null,
         maxFee: recipient.maxFee || null,
       })),
     };
@@ -533,10 +591,13 @@ export class Contract {
   }
 
   async _list(
-    assetName: string,
+    assetNames: string[],
     lovelace: Lovelace,
     privateListing?: Address | null,
   ): Promise<Tx> {
+    if (assetNames.length <= 0) {
+      throw new Error("Needs at least one asset name.");
+    }
     const ownerAddress = await this.lucid.wallet.address();
     const { stakeCredential } = this.lucid.utils
       .getAddressDetails(
@@ -561,17 +622,35 @@ export class Contract {
       ],
     };
 
+    const listingAssets: Assets = Object.fromEntries(
+      assetNames.map(
+        (assetName) => [toUnit(this.config.policyId, assetName), 1n],
+      ),
+    );
+
     return this.lucid.newTx().payToContract(adjustedTradeAddress, {
       inline: Data.to<D.TradeDatum>(tradeDatum, D.TradeDatum),
-    }, { [toUnit(this.config.policyId, assetName)]: 1n });
+    }, listingAssets);
   }
 
-  /** Create a bid on a specific token within the collection. */
-  async _bid(assetName: string, lovelace: Lovelace): Promise<Tx> {
+  /** Create a bid on a specific token or a bundle within the collection. */
+  async _bid(assetNames: string[], lovelace: Lovelace): Promise<Tx> {
+    if (assetNames.length <= 0) {
+      throw new Error("Needs at least one asset name.");
+    }
     const ownerAddress = await this.lucid.wallet.address();
     const { stakeCredential } = this.lucid.utils.getAddressDetails(
       ownerAddress,
     );
+    const bidAssets: Assets = Object.fromEntries(
+      assetNames.map(
+        (assetName) => [toUnit(this.config.policyId, assetName), 1n],
+      ),
+    );
+
+    const bidAssetName = assetNames.length > 1
+      ? fromText("BidBundle")
+      : fromText("Bid") + assetNames[0];
 
     // We include the stake key of the signer
     const adjustedTradeAddress = stakeCredential
@@ -586,7 +665,7 @@ export class Contract {
         owner: fromAddress(ownerAddress),
         requestedOption: {
           SpecificValue: [
-            fromAssets({ [toUnit(this.config.policyId, assetName)]: 1n }),
+            fromAssets(bidAssets),
           ],
         },
       }],
@@ -594,13 +673,13 @@ export class Contract {
 
     return this.lucid.newTx()
       .mintAssets({
-        [toUnit(this.mintPolicyId, fromText("Bid") + assetName)]: 1n,
+        [toUnit(this.mintPolicyId, bidAssetName)]: 1n,
       })
       .payToContract(adjustedTradeAddress, {
         inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
       }, {
         lovelace,
-        [toUnit(this.mintPolicyId, fromText("Bid") + assetName)]: 1n,
+        [toUnit(this.mintPolicyId, bidAssetName)]: 1n,
       })
       .validFrom(this.lucid.utils.slotToUnixTime(1000))
       .attachMintingPolicy(this.mintPolicy);
@@ -609,10 +688,7 @@ export class Contract {
   /** Create a bid on any token within the collection. Optionally add constraints. */
   async _bidOpen(
     lovelace: Lovelace,
-    constraints?: {
-      types?: string[];
-      traits?: { negation?: boolean; trait: string }[];
-    },
+    constraints?: Constraints,
   ): Promise<Tx> {
     const ownerAddress = await this.lucid.wallet.address();
     const { stakeCredential } = this.lucid.utils.getAddressDetails(
@@ -649,13 +725,107 @@ export class Contract {
 
     return this.lucid.newTx()
       .mintAssets({
-        [toUnit(this.mintPolicyId, fromText("OpenBid"))]: 1n,
+        [toUnit(this.mintPolicyId, fromText("BidOpen"))]: 1n,
       })
       .payToContract(adjustedTradeAddress, {
         inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
       }, {
         lovelace,
-        [toUnit(this.mintPolicyId, fromText("OpenBid"))]: 1n,
+        [toUnit(this.mintPolicyId, fromText("BidOpen"))]: 1n,
+      })
+      .validFrom(this.lucid.utils.slotToUnixTime(1000))
+      .attachMintingPolicy(this.mintPolicy);
+  }
+
+  async _bidSwap(
+    offering: {
+      lovelace?: Lovelace;
+      assetNames: string[];
+    },
+    requesting: {
+      constraints?: Constraints;
+      specific?: string[];
+    },
+  ): Promise<Tx> {
+    if (
+      [requesting.constraints, requesting.specific].filter((t) => t).length !==
+        1
+    ) {
+      throw new Error(
+        "You can/must have either constraints or a specific request.",
+      );
+    }
+    if (offering.assetNames.length <= 0) {
+      throw new Error("Needs at least one offering asset name.");
+    }
+    if (requesting.specific && requesting.specific.length <= 0) {
+      throw new Error("Needs at least one requesting asset name.");
+    }
+    const ownerAddress = await this.lucid.wallet.address();
+    const { stakeCredential } = this.lucid.utils.getAddressDetails(
+      ownerAddress,
+    );
+
+    const adjustedTradeAddress = stakeCredential
+      ? this.lucid.utils.credentialToAddress(
+        this.lucid.utils.scriptHashToCredential(this.tradeHash),
+        stakeCredential,
+      )
+      : this.tradeAddress;
+
+    const biddingDatum: D.TradeDatum = {
+      Bid: [{
+        owner: fromAddress(ownerAddress),
+        requestedOption: requesting.specific
+          ? {
+            SpecificValue: [
+              fromAssets(
+                Object.fromEntries(
+                  requesting.specific.map(
+                    (
+                      assetName,
+                    ) => [toUnit(this.config.policyId, assetName), 1n],
+                  ),
+                ),
+              ),
+            ],
+          }
+          : {
+            SpecificSymbolWithConstraints: [
+              this.config.policyId,
+              requesting.constraints?.types
+                ? requesting.constraints.types.map(fromText)
+                : [],
+              requesting.constraints?.traits
+                ? requesting.constraints.traits.map((
+                  { negation, trait },
+                ) =>
+                  negation
+                    ? { Excluded: [fromText(trait)] }
+                    : { Included: [fromText(trait)] }
+                )
+                : [],
+            ],
+          },
+      }],
+    };
+
+    const offeringAssets: Assets = Object.fromEntries(
+      offering.assetNames.map(
+        (assetName) => [toUnit(this.config.policyId, assetName), 1n],
+      ),
+    );
+    if (offering.lovelace) offeringAssets.lovelace = offering.lovelace;
+
+    return this.lucid.newTx()
+      .mintAssets({
+        [toUnit(this.mintPolicyId, fromText("BidSwap"))]: 1n,
+      })
+      .payToContract(adjustedTradeAddress, {
+        inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
+      }, {
+        ...offeringAssets,
+        [toUnit(this.mintPolicyId, fromText("BidSwap"))]: 1n,
       })
       .validFrom(this.lucid.utils.slotToUnixTime(1000))
       .attachMintingPolicy(this.mintPolicy);
@@ -812,7 +982,7 @@ export class Contract {
     }
 
     const [bidToken] = Object.keys(bidUtxo.assets).filter((unit) =>
-      unit !== "lovelace"
+      unit.startsWith(this.mintPolicyId)
     );
 
     const refScripts = await this.getDeployedScripts();
@@ -906,15 +1076,17 @@ export class Contract {
         this.lucid,
       );
       const fee = recipient.fee;
+      const minFee = recipient.minFee;
       const maxFee = recipient.maxFee;
 
       const feeToPay = (lovelace * 10n) / fee;
-      const adjustedFee = maxFee && feeToPay > maxFee ? maxFee : feeToPay;
+      const adjustedFee = minFee && feeToPay < minFee
+        ? minFee
+        : maxFee && feeToPay > maxFee
+        ? maxFee
+        : feeToPay;
 
       remainingLovelace -= adjustedFee;
-      if (remainingLovelace <= 0n) {
-        throw new Error("No lovelace left for recipient.");
-      }
 
       tx.payToAddressWithData(address, { inline: paymentDatum }, {
         lovelace: adjustedFee,
@@ -922,6 +1094,9 @@ export class Contract {
     }
 
     tx.readFrom([utxo]);
+
+    // max(0, remainingLovelace)
+    remainingLovelace = remainingLovelace < 0n ? 0n : remainingLovelace;
 
     return { tx, remainingLovelace };
   }

@@ -5,15 +5,20 @@
 import {
   BidAndListingEventData,
   BidOpenEventData,
+  BidSwapEventData,
   Config,
   MarketplaceEvent,
   SaleEventData,
 } from "./src/types.ts";
 
 export const config: Config = {
-  scriptHash: "02a14fc56bb2b02b3461b54f8772fb533bee8d8b2098f392b10cb259",
-  bidPolicyId: "925f5a8ff5d128b8f5146be646d0a4858536fa2fc55ee864c14e492f",
+  scriptHash: "6b119d59fb18d5a67d6713f61c5f34b3ffe35776d9aa372cad7f761e",
+  bidPolicyId: "f2064327c97a911c04139cc4b40a8d4836752c27fc4b0e97de77e1b3",
   projects: ["8da99f2c04edd1c54993c74a36e8da8d9985334d9429d881e72e7e41"],
+  startPoint: {
+    hash: "7328ac27f51c83d7e565d84272fdcb76cedb3c6ac878b8a02bc129c6d79bf3c7",
+    slot: 18892999,
+  },
 };
 
 export function eventsHandler(events: MarketplaceEvent[]) {
@@ -64,6 +69,11 @@ export function eventsHandler(events: MarketplaceEvent[]) {
         // Your logic here
         break;
       }
+      case "SellSwap": {
+        const eventData: SaleEventData = event.data;
+        // Your logic here
+        break;
+      }
       case "CancelBidBundle": {
         const eventData: BidAndListingEventData = event.data;
         // Your logic here
@@ -86,6 +96,11 @@ export function eventsHandler(events: MarketplaceEvent[]) {
       }
       case "CancelListingSingle": {
         const eventData: BidAndListingEventData = event.data;
+        // Your logic here
+        break;
+      }
+      case "CancelBidSwap": {
+        const eventData: BidSwapEventData = event.data;
         // Your logic here
         break;
       }

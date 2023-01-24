@@ -31,13 +31,14 @@ export type MarketplaceEvent = {
 };
 
 export type ListingEventType = "ListingSingle" | "ListingBundle";
-export type BidEventType = "BidSingle" | "BidBundle" | "BidOpen";
+export type BidEventType = "BidSingle" | "BidBundle" | "BidOpen" | "BidSwap";
 export type BuyEventType = "BuySingle" | "BuyBundle";
-export type SellEventType = "SellSingle" | "SellBundle";
+export type SellEventType = "SellSingle" | "SellBundle" | "SellSwap";
 export type CancelBidEventType =
   | "CancelBidSingle"
   | "CancelBidBundle"
-  | "CancelBidOpen";
+  | "CancelBidOpen"
+  | "CancelBidSwap";
 export type CancelListingEventType =
   | "CancelListingSingle"
   | "CancelListingBundle";
@@ -83,6 +84,7 @@ export type BidDB = {
   owner: string;
   /** We can savely use number here and don't need bigint. */
   lovelace: number;
+  addBidAssets?: AssetsWithNumber | null;
 };
 
 export type SaleDB = {
@@ -92,6 +94,7 @@ export type SaleDB = {
   assets: AssetsWithNumber;
   /** We can savely use number here and don't need bigint. */
   lovelace: number;
+  addBidAssets?: AssetsWithNumber | null;
   /** Bech32 payment credential */
   buyer: string;
   /** Bech32 payment credential */
@@ -109,6 +112,7 @@ export type CancellationDB = {
   owner: string;
   /** We can savely use number here and don't need bigint. */
   lovelace: number;
+  addBidAssets?: AssetsWithNumber | null;
 };
 
 export type BidAndListingEventData = {
@@ -132,12 +136,25 @@ export type BidOpenEventData = {
   lovelace: number;
 };
 
+export type BidSwapEventData = {
+  txHash: TxHash;
+  slot: Slot;
+  policyId: PolicyId;
+  constraints?: Json;
+  /** Bech32 payment credential */
+  owner: string;
+  /** We can savely use number here and don't need bigint. */
+  lovelace: number;
+  addBidAssets: AssetsWithNumber;
+};
+
 export type SaleEventData = {
   txHash: TxHash;
   slot: Slot;
   assets: AssetsWithNumber;
   /** We can savely use number here and don't need bigint. */
   lovelace: number;
+  addBidAssets?: AssetsWithNumber | null;
   /** Bech32 payment credential */
   seller: string;
   /** Bech32 payment credential */

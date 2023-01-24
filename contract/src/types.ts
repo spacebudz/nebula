@@ -12,6 +12,13 @@ export type RoyaltyRecipient = {
   address: Address;
   /** e.g.: 0.04 (4%) */
   fee: number;
+  /** Optionally set a minimum absolute fee. */
+  minFee?: Lovelace;
   /** Optionally set a maximum absolute fee. */
   maxFee?: Lovelace;
+};
+
+export type Constraints = {
+  types?: string[];
+  traits?: { negation?: boolean; trait: string }[];
 };

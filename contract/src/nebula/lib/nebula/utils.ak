@@ -89,6 +89,30 @@ pub fn value_paid_to_with_datum(
   // output.value
 }
 
+pub fn adjust_lower_bound(fee: Int, lower_bound: Option<Int>) -> Int {
+  when lower_bound is {
+    Some(min_fee) ->
+      if fee < min_fee {
+        min_fee
+      } else {
+        fee
+      }
+    None -> fee
+  }
+}
+
+test adjust_lower_bound_1() {
+  adjust_lower_bound(0, None) == 0
+}
+
+test adjust_lower_bound_2() {
+  adjust_lower_bound(0, Some(100)) == 100
+}
+
+test adjust_lower_bound_3() {
+  adjust_lower_bound(110, Some(100)) == 110
+}
+
 pub fn adjust_upper_bound(fee: Int, upper_bound: Option<Int>) -> Int {
   when upper_bound is {
     Some(max_fee) ->
@@ -111,4 +135,28 @@ test adjust_upper_bound_2() {
 
 test adjust_upper_bound_3() {
   adjust_upper_bound(110, Some(100)) == 100
+}
+
+test adjusted_fee_1() {
+  let adjusted_fee =
+    100
+    |> adjust_lower_bound(None)
+    |> adjust_upper_bound(None)
+  adjusted_fee == 100
+}
+
+test adjusted_fee_2() {
+  let adjusted_fee =
+    100
+    |> adjust_lower_bound(Some(10))
+    |> adjust_upper_bound(Some(60))
+  adjusted_fee == 60
+}
+
+test adjusted_fee_3() {
+  let adjusted_fee =
+    1
+    |> adjust_lower_bound(Some(10))
+    |> adjust_upper_bound(Some(60))
+  adjusted_fee == 10
 }

@@ -5,8 +5,8 @@ import {
   Datum,
   fromHex,
   fromText,
-  getAddressDetails,
   OutRef,
+  paymentCredentialOf,
   Point,
   PolicyId,
   toLabel,
@@ -43,7 +43,7 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
       Object.keys(output.value.assets || {}).find((unit) =>
         unit.startsWith(config.bidPolicyId)
       ) &&
-      getAddressDetails(output.address).paymentCredential?.hash ===
+      paymentCredentialOf(output.address).hash ===
         config.scriptHash
     ) {
       // Check bid
@@ -59,6 +59,23 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
         data: bidDetails.owner,
       });
       const lovelace = parseInt(output.value.coins.toString());
+
+      const addBidAssets: AssetsWithNumber = Object.fromEntries(
+        Object.entries(output.value.assets!).filter(([unit, _]) =>
+          !unit.startsWith(config.bidPolicyId)
+        ).map((
+          [unit, quantity],
+        ) => [unit.replace(".", ""), Number(quantity)]),
+      );
+
+      // We only track valid addBidAssets. We allow combinations of whitelisted project policy ids.
+      if (
+        !Object.keys(addBidAssets).every((unit) =>
+          config.projects.some((projectPolicyId) =>
+            unit.startsWith(projectPolicyId)
+          )
+        )
+      ) continue;
 
       if ("SpecificValue" in bidDetails.requestedOption) {
         const assets: AssetsWithNumber = assetsToAsssetsWithNumber(
@@ -80,7 +97,9 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
           )
         ) continue;
 
-        const type: MarketplaceEventType = units.length > 1
+        const type: MarketplaceEventType = Object.keys(addBidAssets).length > 0
+          ? "BidSwap"
+          : units.length > 1
           ? "BidBundle"
           : "BidSingle";
 
@@ -91,6 +110,7 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
           assets,
           owner,
           lovelace,
+          addBidAssets,
         });
         db.registerEvent({
           type,
@@ -100,6 +120,7 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
             assets: assets,
             owner,
             lovelace,
+            addBidAssets,
           },
         }, point);
       } else if (
@@ -134,11 +155,12 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
         db.addBid({
           outRef,
           point,
-          type: "BidOpen",
+          type,
           policyId,
           constraints,
           owner,
           lovelace,
+          addBidAssets,
         });
 
         db.registerEvent({
@@ -150,6 +172,7 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
             constraints,
             owner,
             lovelace,
+            addBidAssets,
           },
         }, point);
       }
@@ -160,7 +183,7 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
           unit.startsWith(projectPolicyId)
         )
       ) &&
-      getAddressDetails(output.address).paymentCredential?.hash ===
+      paymentCredentialOf(output.address).hash ===
         config.scriptHash
     ) {
       // Check listing
@@ -269,6 +292,8 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
               return "SellBundle";
             case "BidOpen":
               return "SellSingle";
+            case "BidSwap":
+              return "SellSwap";
           }
         })();
 
@@ -310,6 +335,7 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
           type,
           assets: assets!,
           lovelace: bid.lovelace,
+          addBidAssets: bid.addBidAssets,
           seller,
           buyer: bid.owner,
         });
@@ -320,6 +346,7 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
             slot: point.slot,
             assets,
             lovelace: bid.lovelace,
+            addBidAssets: bid.addBidAssets,
             seller,
             buyer: bid.owner,
           },
@@ -419,6 +446,8 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
                 return "CancelBidBundle";
               case "BidOpen":
                 return "CancelBidOpen";
+              case "BidSwap":
+                return "CancelBidSwap";
             }
           })();
           db.addCancellation({
@@ -430,6 +459,7 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
             constraints: bid.constraints,
             owner: bid.owner,
             lovelace: bid.lovelace,
+            addBidAssets: bid.addBidAssets,
           });
           db.registerEvent({
             type: type,
@@ -441,6 +471,7 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
               policyId: bid.policyId,
               constraints: bid.constraints,
               lovelace: bid.lovelace,
+              addBidAssets: bid.addBidAssets,
             },
           }, point);
           db.spendBid(outRef);

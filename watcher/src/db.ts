@@ -34,9 +34,9 @@ CREATE TABLE IF NOT EXISTS listings (
     headerHash TEXT NOT NULL,
     spent BOOLEAN DEFAULT FALSE,
     listingType TEXT NOT NULL, -- SingleListing | BundleListing
-    assets TEXT NOT NULl, -- { [policy id + asset name] : quantity } (nft or semi fungible)
+    assets TEXT NOT NULl, -- { [policy id + asset name] : quantity } (nft or semi fungible) - offered
     owner TEXT NOT NULL, -- payment credential bech32
-    lovelace INTEGER NOT NULL,
+    lovelace INTEGER NOT NULL, -- requested
     privateListing TEXT -- ? payment credential bech32
 );
 
@@ -46,11 +46,12 @@ CREATE TABLE IF NOT EXISTS bids (
     headerHash TEXT NOT NULL,
     spent BOOLEAN DEFAULT FALSE,
     bidType TEXT NOT NULL, -- BidSingle | BidBundle | BidOpen
-    assets TEXT, -- ? { [policy id + asset name] : quantity } (nft or semi fungible)
-    policyId TEXT, -- ? only policy id (open bid)
+    assets TEXT, -- ? { [policy id + asset name] : quantity } (nft or semi fungible) - requested
+    policyId TEXT, -- ? only policy id (open bid) - requested
     constraints TEXT, -- ? constraints (open bid) e.g. {types: ["Lion"], traits: ["Axe", "Jo-Jo"]}
     owner TEXT NOT NULL, -- payment credential bech32
-    lovelace INTEGER NOT NULL
+    lovelace INTEGER NOT NULL,
+    addBidAssets TEXT -- ? Additional assets stored next to lovelace in the bid UTxO. This could be used for NFT <> NFT trades - offered
 );
 
 CREATE TABLE IF NOT EXISTS sales (
@@ -58,9 +59,10 @@ CREATE TABLE IF NOT EXISTS sales (
     txHash TEXT, -- tx hash
     slot INTEGER NOT NULL,
     headerHash TEXT NOT NULL,
-    saleType TEXT NOT NULL, -- BuySingle | BuyBundle | SellSingle | SellBundle
+    saleType TEXT NOT NULL, -- BuySingle | BuyBundle | SellSingle | SellBundle | SellSwap
     assets TEXT NOT NULL, -- { [policy id + asset name] : quantity } (nft or semi fungible)
     lovelace INTEGER NOT NULL,
+    addBidAssets TEXT, -- ? (SellSwap only) Additional assets stored next to lovelace in the bid UTxO. This could be used for NFT <> NFT trades - offered
     buyer TEXT, -- ? payment credential bech32
     seller TEXT -- ? payment credential bech32
 );
@@ -70,12 +72,13 @@ CREATE TABLE IF NOT EXISTS cancellations (
     txHash TEXT, -- tx hash
     slot INTEGER NOT NULL,
     headerHash TEXT NOT NULL,
-    cancelType TEXT NOT NULL, -- CancelBidSingle | CancelBidBundle | CancelBidOpen | CancelListingSingle | CancelListingBundle
+    cancelType TEXT NOT NULL, -- CancelBidSingle | CancelBidBundle | CancelBidOpen | CancelListingSingle | CancelListingBundle | CancelBidSwap
     assets TEXT, -- ? { [policy id + asset name] : quantity } (nft or semi fungible)
     policyId TEXT, -- ? policy id (open bid)
     constraints TEXT, -- ? constraints (open bid) e.g. {types: ["Lion"], traits: ["Axe", "Jo-Jo"]}
     owner TEXT NOT NULL, -- payment credential bech32
-    lovelace INTEGER NOT NULL
+    lovelace INTEGER NOT NULL,
+    addBidAssets TEXT -- ? (CancelBidSwap only) Additional assets stored next to lovelace in the bid UTxO. This could be used for NFT <> NFT trades - offered
 );
 
 CREATE TABLE IF NOT EXISTS events (
@@ -87,13 +90,13 @@ CREATE TABLE IF NOT EXISTS events (
 );
 
 CREATE VIEW IF NOT EXISTS activity AS SELECT * FROM (
-SELECT slot, SUBSTRING(outputReference, 0, 65) AS txHash, assets, listingType AS activityType, lovelace, NULL AS policyId FROM listings
+SELECT slot, SUBSTRING(outputReference, 0, 65) AS txHash, assets, listingType AS activityType, lovelace, NULL AS policyId, NULL AS addBidAssets FROM listings
 UNION 
-SELECT slot, SUBSTRING(outputReference, 0, 65) AS txHash, assets, bidType AS activityType, lovelace, policyId FROM bids
+SELECT slot, SUBSTRING(outputReference, 0, 65) AS txHash, assets, bidType AS activityType, lovelace, policyId, addBidAssets FROM bids
 UNION
-SELECT slot, txHash, assets, saleType AS activityType, lovelace, NULL AS policyId FROM sales
+SELECT slot, txHash, assets, saleType AS activityType, lovelace, NULL AS policyId, addBidAssets FROM sales
 UNION
-SELECT slot, txHash, assets, cancelType AS activityType, lovelace, policyId FROM cancellations
+SELECT slot, txHash, assets, cancelType AS activityType, lovelace, policyId, addBidAssets FROM cancellations
 ) ORDER BY slot DESC limit 100;
 
 CREATE TABLE IF NOT EXISTS checkpoint (
@@ -139,6 +142,7 @@ class MarketplaceDB {
         constraints?: string;
         owner: string;
         lovelace: number;
+        addBidAssets?: string;
       }>(
         sql`SELECT * FROM bids WHERE outputReference = :outRef`,
         { outRef: toMergedOutRef(outRef) },
@@ -152,6 +156,7 @@ class MarketplaceDB {
         constraints: parseJSONSafe(q.constraints),
         owner: q.owner,
         lovelace: q.lovelace,
+        addBidAssets: parseJSONSafe(q.addBidAssets),
       };
     } catch (_e) {
       return null;
@@ -159,13 +164,22 @@ class MarketplaceDB {
   }
 
   addBid(
-    { outRef, point, type, assets, policyId, constraints, owner, lovelace }:
-      BidDB,
+    {
+      outRef,
+      point,
+      type,
+      assets,
+      policyId,
+      constraints,
+      owner,
+      lovelace,
+      addBidAssets,
+    }: BidDB,
   ) {
     this.db.query(
       sql`
-      INSERT INTO bids (outputReference, slot, headerHash, bidType, assets, policyId, constraints, owner, lovelace) 
-      VALUES (:outRef, :slot, :hash, :type, :assets, :policyId, :constraints, :owner, :lovelace)
+      INSERT INTO bids (outputReference, slot, headerHash, bidType, assets, policyId, constraints, owner, lovelace, addBidAssets) 
+      VALUES (:outRef, :slot, :hash, :type, :assets, :policyId, :constraints, :owner, :lovelace, :addBidAssets)
     `,
       {
         outRef: toMergedOutRef(outRef),
@@ -177,6 +191,7 @@ class MarketplaceDB {
         constraints: constraints ? JSON.stringify(constraints) : null,
         owner,
         lovelace,
+        addBidAssets: addBidAssets ? JSON.stringify(addBidAssets) : null,
       },
     );
   }
@@ -250,11 +265,14 @@ class MarketplaceDB {
     }
   }
 
-  addSale({ txHash, point, type, assets, lovelace, buyer, seller }: SaleDB) {
+  addSale(
+    { txHash, point, type, assets, lovelace, addBidAssets, buyer, seller }:
+      SaleDB,
+  ) {
     this.db.query(
       sql`
-      INSERT INTO sales (txHash, slot, headerHash, saleType, assets, lovelace, buyer, seller) 
-      VALUES (:txHash, :slot, :hash, :type, :assets, :lovelace, :buyer, :seller)
+      INSERT INTO sales (txHash, slot, headerHash, saleType, assets, lovelace, addBidAssets, buyer, seller) 
+      VALUES (:txHash, :slot, :hash, :type, :assets, :lovelace, :addBidAssets, :buyer, :seller)
     `,
       {
         txHash,
@@ -263,6 +281,7 @@ class MarketplaceDB {
         type,
         assets: JSON.stringify(assets),
         lovelace,
+        addBidAssets: addBidAssets ? JSON.stringify(addBidAssets) : null,
         buyer,
         seller,
       },
@@ -270,13 +289,22 @@ class MarketplaceDB {
   }
 
   addCancellation(
-    { txHash, point, type, assets, policyId, constraints, owner, lovelace }:
-      CancellationDB,
+    {
+      txHash,
+      point,
+      type,
+      assets,
+      policyId,
+      constraints,
+      owner,
+      lovelace,
+      addBidAssets,
+    }: CancellationDB,
   ) {
     this.db.query(
       sql`
-    INSERT INTO cancellations (txHash, slot, headerHash, cancelType, assets, policyId, constraints, owner, lovelace) 
-    VALUES (:txHash, :slot, :hash, :type, :assets, :policyId, :constraints, :owner, :lovelace)
+    INSERT INTO cancellations (txHash, slot, headerHash, cancelType, assets, policyId, constraints, owner, lovelace, addBidAssets) 
+    VALUES (:txHash, :slot, :hash, :type, :assets, :policyId, :constraints, :owner, :lovelace, :addBidAssets)
   `,
       {
         txHash,
@@ -288,6 +316,7 @@ class MarketplaceDB {
         constraints: constraints ? JSON.stringify(constraints) : null,
         owner,
         lovelace,
+        addBidAssets: addBidAssets ? JSON.stringify(addBidAssets) : null,
       },
     );
   }

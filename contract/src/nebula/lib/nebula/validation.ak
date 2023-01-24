@@ -25,20 +25,22 @@ pub fn checked_fee_recipients(
     [] -> Some(remaining_lovelace)
     [fee_recipient, ..remaining_recipients] -> {
       let fee_to_pay = accepted_lovelace * 10 / fee_recipient.fee
+      // Check if the variable fee stays within the boundaries of minFee and maxFee (if applied)
       let adjusted_fee =
-        utils.adjust_upper_bound(fee_to_pay, fee_recipient.max_fee)
-      let new_lovelace = remaining_lovelace - adjusted_fee
+        fee_to_pay
+        |> utils.adjust_lower_bound(fee_recipient.min_fee)
+        |> utils.adjust_upper_bound(fee_recipient.max_fee)
       let has_paid =
         value.lovelace_of(
         utils.value_paid_to_with_datum(tx, fee_recipient.address, payment_datum))
-         >= adjusted_fee && new_lovelace > 0
+         >= adjusted_fee
       if has_paid {
         checked_fee_recipients(
           tx,
           remaining_recipients,
           payment_datum,
           accepted_lovelace,
-          new_lovelace,
+          remaining_lovelace - adjusted_fee,
         )
       } else {
         None

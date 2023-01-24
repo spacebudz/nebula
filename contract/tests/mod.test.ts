@@ -61,6 +61,10 @@ async function createNFTs() {
     [toUnit(policyId, fromText("Bud0"), 222)]: 1n,
     [toUnit(policyId, fromText("Bud25"), 100)]: 1n,
     [toUnit(policyId, fromText("Bud25"), 222)]: 1n,
+    [toUnit(policyId, fromText("Bud32"), 100)]: 1n,
+    [toUnit(policyId, fromText("Bud32"), 222)]: 1n,
+    [toUnit(policyId, fromText("Bud1111"), 100)]: 1n,
+    [toUnit(policyId, fromText("Bud1111"), 222)]: 1n,
   })
     .payToContract(
       unspendableAddress,
@@ -98,6 +102,42 @@ async function createNFTs() {
         [toUnit(policyId, fromText("Bud25"), 100)]: 1n,
       },
     )
+    .payToContract(
+      unspendableAddress,
+      Data.to(
+        new Constr(0, [
+          Data.fromJson({
+            name: "SpaceBud #32",
+            image: "ipfs://QmSNJ78jdqwbd6yRtHzLrXNnaY8vnuuGN4AbJbMVd2XRuC",
+            traits: ["Jo-Jo", "Covered Helmet"],
+            type: "Dog",
+            imageHash: "sha256",
+          }),
+          1n,
+        ]),
+      ),
+      {
+        [toUnit(policyId, fromText("Bud32"), 100)]: 1n,
+      },
+    )
+    .payToContract(
+      unspendableAddress,
+      Data.to(
+        new Constr(0, [
+          Data.fromJson({
+            name: "SpaceBud #1111",
+            image: "ipfs://QmSNJ78jdqwbd6yRtHzLrXNnaY8vnuuGN4AbJbMVd2XRuC",
+            traits: [],
+            type: "Bull",
+            imageHash: "sha256",
+          }),
+          1n,
+        ]),
+      ),
+      {
+        [toUnit(policyId, fromText("Bud1111"), 100)]: 1n,
+      },
+    )
     .validFrom(emulator.now())
     .attachMintingPolicy(script).complete();
 
@@ -114,8 +154,9 @@ const { txHash, royaltyToken } = await Contract.createRoyalty(
   lucid,
   [{
     address: "addr_test1vqdr6txha8u2q4c5h2xy5rvk7lslvr252k2khln5mea32lcf82jnm",
+    minFee: 400000n,
     fee: 0.016,
-    maxFee: 1500000n,
+    // maxFee: 1500000n,
   }, {
     address: "addr_test1vz54zm2fmqxzm6m6jq577ssu4z67tw0qk2xm6m7zceexlfc7qyr5h",
     fee: 0.004,
@@ -155,7 +196,7 @@ const contract = new Contract(lucid, {
 
 Deno.test("List and buy", async () => {
   await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
-    await contract.list(idToBud(0), 800000000n),
+    await contract.list([idToBud(0)], 800000000n),
   );
   const [listing] = await contract.getListings(idToBud(0));
   await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
@@ -165,9 +206,9 @@ Deno.test("List and buy", async () => {
 
 Deno.test("Bid and sell", async () => {
   await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
-    await contract.bid(idToBud(0), 800000000n),
+    await contract.bid([idToBud(0)], 800000000n),
   );
-  const [bid] = await contract.getBids(idToBud(0));
+  const [bid] = await contract.getBids({ assetName: idToBud(0) });
   await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
     await contract.sell([{ bidUtxo: bid }]),
   );
@@ -175,7 +216,7 @@ Deno.test("Bid and sell", async () => {
 
 Deno.test("List and cancel", async () => {
   await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
-    await contract.list(idToBud(0), 800000000n),
+    await contract.list([idToBud(0)], 800000000n),
   );
   const [listing] = await contract.getListings(idToBud(0));
   try {
@@ -193,9 +234,9 @@ Deno.test("List and cancel", async () => {
 
 Deno.test("Bid and cancel", async () => {
   await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
-    await contract.bid(idToBud(0), 800000000n),
+    await contract.bid([idToBud(0)], 800000000n),
   );
-  const [bid] = await contract.getBids(idToBud(0));
+  const [bid] = await contract.getBids({ assetName: idToBud(0) });
   try {
     await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
       await contract.cancelBid(bid),
@@ -230,25 +271,79 @@ Deno.test("Collection offer and sell", async () => {
   );
 });
 
-Deno.test("Combine endpoints", async () => {
+Deno.test("Swap", async () => {
   await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
-    await contract.list(idToBud(25), 800000000n),
+    await contract.bidSwap({ assetNames: [idToBud(32), idToBud(1111)] }, {
+      specific: [idToBud(0)],
+    }),
+  );
+  const [bid] = await contract.getBids("Swap");
+  await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
+    await contract.sell([{ bidUtxo: bid }]),
+  );
+});
+
+Deno.test("Swap with constraints", async () => {
+  await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
+    await contract.bidSwap({ assetNames: [idToBud(1111)] }, {
+      constraints: { types: ["Dino"] },
+    }),
+  );
+  const [bid] = await contract.getBids("Swap");
+  await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
+    await contract.sell([{ bidUtxo: bid, assetName: idToBud(25) }]),
+  );
+  await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
+    await lucid.newTx().payToAddress(ACCOUNT_1.address, {
+      [contract.config.policyId + idToBud(1111)]: 1n,
+    }).complete().then((tx) => tx.sign().complete()).then((tx) => tx.submit()),
   );
   await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
-    await contract.bid(idToBud(25), 500000000n),
+    await lucid.newTx().payToAddress(ACCOUNT_0.address, {
+      [contract.config.policyId + idToBud(25)]: 1n,
+    }).complete().then((tx) => tx.sign().complete()).then((tx) => tx.submit()),
   );
-  const [bid] = await contract.getBids(idToBud(25));
+});
+
+Deno.test("Combine endpoints", async () => {
+  await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
+    await contract.list([idToBud(25)], 800000000n),
+  );
+  await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
+    await contract.bid([idToBud(25)], 500000000n),
+  );
+  const [bid] = await contract.getBids({ assetName: idToBud(25) });
   const [listing] = await contract.getListings(idToBud(25));
   const doMultiple = await lucid
     .selectWalletFromSeed(ACCOUNT_1.seedPhrase)
     .newTx()
-    .compose(await contract._list(idToBud(0), 10000000000n))
-    .compose(await contract._bid(idToBud(22), 30000000n))
-    .compose(await contract._bid(idToBud(237), 20000000n))
+    .compose(await contract._list([idToBud(32)], 10000000000n))
+    .compose(await contract._bid([idToBud(22)], 30000000n))
+    .compose(await contract._bid([idToBud(237)], 20000000n))
     .compose(await contract._cancelBid(bid))
     .compose(await contract._buy(listing))
     .compose(await contract._bidOpen(200000000n, { types: ["Ape"] }))
     .complete();
   const signedTx = await doMultiple.sign().complete();
   await lucid.awaitTx(await signedTx.submit());
+});
+
+Deno.test("Bundle bid", async () => {
+  await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
+    await contract.bid([idToBud(25), idToBud(1111)], 1000000000n),
+  );
+  const [bid] = await contract.getBids("Bundle");
+  await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
+    await contract.sell([{ bidUtxo: bid }]),
+  );
+});
+
+Deno.test("Bundle listing", async () => {
+  await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
+    await contract.list([idToBud(25), idToBud(1111)], 1000000000n),
+  );
+  const [listing] = await contract.getListings(idToBud(25));
+  await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
+    await contract.buy([listing]),
+  );
 });

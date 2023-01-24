@@ -27,6 +27,7 @@ pub type RoyaltyRecipient {
   address: Address,
   // percentage (fraction)
   fee: Int,
+  min_fee: Option<Int>,
   // fixed
   max_fee: Option<Int>,
 }
