@@ -16,8 +16,8 @@
 1. Import `Contract` and `Lucid` and create royalty/fee token.
 
 ```ts
-import { Contract } from "https://deno.land/x/nebula@0.1.3/contract/mod.ts"
-import { Lucid, Blockfrost } from "https://deno.land/x/lucid@0.8.7/mod.ts"
+import { Contract } from "https://deno.land/x/nebula@0.1.3/contract/mod.ts" // TODO
+import { Lucid, Blockfrost } from "https://deno.land/x/lucid@0.8.8/mod.ts"
 
 const lucid = await Lucid.new(
   new Blockfrost(
@@ -79,7 +79,7 @@ Time to play with the marketplace!
 
 Place a bid (on SpaceBud #10):
 ```ts
-console.log(await contract.bid(idToBud(10), 5000000000n));
+console.log(await contract.bid([idToBud(10)], 5000000000n));
 ```
 
 Accept bid (sell):
@@ -90,7 +90,7 @@ console.log(await contract.sell([{ bidUtxo: bid }]));
 
 List an NFT (SpaceBud #10):
 ```ts
-console.log(await contract.list(idToBud(10), 6000000000n));
+console.log(await contract.list([idToBud(10)], 6000000000n));
 ```
 
 Buy:
@@ -111,7 +111,7 @@ console.log(
 
 Accept open bid (with SpaceBud #650 as it is a Bear and has a Hockey Stick):
 ```ts
-const [bid] = await contract.getBids("open");
+const [bid] = await contract.getBids("Open");
 console.log(await contract.sell([{ bidUtxo: bid, assetName: idToBud(650) }]));
 ```
 
@@ -136,6 +136,7 @@ It is not a requirement to run the core of the marketplace.
 import {
   BidAndListingEventData,
   BidOpenEventData,
+  BidSwapEventData,
   Config,
   MarketplaceEvent,
   SaleEventData,
@@ -200,6 +201,11 @@ export function eventsHandler(events: MarketplaceEvent[]) {
         // Your logic here
         break;
       }
+      case "SellSwap": {
+        const eventData: SaleEventData = event.data;
+        // Your logic here
+        break;
+      }
       case "CancelBidBundle": {
         const eventData: BidAndListingEventData = event.data;
         // Your logic here
@@ -222,6 +228,11 @@ export function eventsHandler(events: MarketplaceEvent[]) {
       }
       case "CancelListingSingle": {
         const eventData: BidAndListingEventData = event.data;
+        // Your logic here
+        break;
+      }
+      case "CancelBidSwap": {
+        const eventData: BidSwapEventData = event.data;
         // Your logic here
         break;
       }
