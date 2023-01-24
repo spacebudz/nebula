@@ -22,9 +22,9 @@ CREATE TABLE IF NOT EXISTS listings (
     headerHash TEXT NOT NULL,
     spent BOOLEAN DEFAULT FALSE,
     listingType TEXT NOT NULL, -- SingleListing | BundleListing
-    nfts TEXT NOT NULl, -- policy id + asset name | [policy id + asset name]
+    assets TEXT NOT NULl, -- { [policy id + asset name] : quantity } (nft or semi fungible) - offered
     owner TEXT NOT NULL, -- payment credential bech32
-    lovelace INTEGER NOT NULL,
+    lovelace INTEGER NOT NULL, -- requested
     privateListing TEXT -- ? payment credential bech32
 );
 
@@ -34,37 +34,39 @@ CREATE TABLE IF NOT EXISTS bids (
     headerHash TEXT NOT NULL,
     spent BOOLEAN DEFAULT FALSE,
     bidType TEXT NOT NULL, -- BidSingle | BidBundle | BidOpen
-    -- Either singe/bundle bid or open bid with optional constraints
-    nfts TEXT, -- ? policy id + asset name | [policy id + asset name] (single/bundle bid)
-    policyId TEXT, -- ? only policy id (open bid)
+    assets TEXT, -- ? { [policy id + asset name] : quantity } (nft or semi fungible) - requested
+    policyId TEXT, -- ? only policy id (open bid) - requested
     constraints TEXT, -- ? constraints (open bid) e.g. {types: ["Lion"], traits: ["Axe", "Jo-Jo"]}
     owner TEXT NOT NULL, -- payment credential bech32
-    lovelace INTEGER NOT NULL
+    lovelace INTEGER NOT NULL,
+    addBidAssets TEXT -- ? Additional assets stored next to lovelace in the bid UTxO. This could be used for NFT <> NFT trades - offered
 );
 
 CREATE TABLE IF NOT EXISTS sales (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    txHash TEXT NOT NULL, -- tx hash
+    txHash TEXT, -- tx hash
     slot INTEGER NOT NULL,
     headerHash TEXT NOT NULL,
-    saleType TEXT NOT NULL, -- BuySingle | BuyBundle | SellSingle | SellBundle
-    nfts TEXT NOT NULL, -- policy id + asset name | [policy id + asset name]
+    saleType TEXT NOT NULL, -- BuySingle | BuyBundle | SellSingle | SellBundle | SellSwap
+    assets TEXT NOT NULL, -- { [policy id + asset name] : quantity } (nft or semi fungible)
     lovelace INTEGER NOT NULL,
+    addBidAssets TEXT, -- ? (SellSwap only) Additional assets stored next to lovelace in the bid UTxO. This could be used for NFT <> NFT trades - offered
     buyer TEXT, -- ? payment credential bech32
     seller TEXT -- ? payment credential bech32
 );
 
 CREATE TABLE IF NOT EXISTS cancellations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    txHash TEXT NOT NULL, -- tx hash
+    txHash TEXT, -- tx hash
     slot INTEGER NOT NULL,
     headerHash TEXT NOT NULL,
-    cancelType TEXT NOT NULL, -- CancelBidSingle | CancelBidBundle | CancelBidOpen | CancelListingSingle | CancelListingBundle
-    nfts TEXT, -- ? policy id + asset name | [policy id + asset name] (single/bundle )
+    cancelType TEXT NOT NULL, -- CancelBidSingle | CancelBidBundle | CancelBidOpen | CancelListingSingle | CancelListingBundle | CancelBidSwap
+    assets TEXT, -- ? { [policy id + asset name] : quantity } (nft or semi fungible)
     policyId TEXT, -- ? policy id (open bid)
     constraints TEXT, -- ? constraints (open bid) e.g. {types: ["Lion"], traits: ["Axe", "Jo-Jo"]}
     owner TEXT NOT NULL, -- payment credential bech32
-    lovelace INTEGER NOT NULL
+    lovelace INTEGER NOT NULL,
+    addBidAssets TEXT -- ? (CancelBidSwap only) Additional assets stored next to lovelace in the bid UTxO. This could be used for NFT <> NFT trades - offered
 );
 
 CREATE TABLE IF NOT EXISTS events (
@@ -76,13 +78,13 @@ CREATE TABLE IF NOT EXISTS events (
 );
 
 CREATE VIEW IF NOT EXISTS activity AS SELECT * FROM (
-SELECT slot, SUBSTRING(outputReference, 0, 65) AS txHash, nfts, listingType AS activityType, lovelace, NULL AS policyId FROM listings
+SELECT slot, SUBSTRING(outputReference, 0, 65) AS txHash, assets, listingType AS activityType, lovelace, NULL AS policyId, NULL AS addBidAssets FROM listings
 UNION 
-SELECT slot, SUBSTRING(outputReference, 0, 65) AS txHash, nfts, bidType AS activityType, lovelace, policyId FROM bids
+SELECT slot, SUBSTRING(outputReference, 0, 65) AS txHash, assets, bidType AS activityType, lovelace, policyId, addBidAssets FROM bids
 UNION
-SELECT slot, txHash, nfts, saleType AS activityType, lovelace, NULL AS policyId FROM sales
+SELECT slot, txHash, assets, saleType AS activityType, lovelace, NULL AS policyId, addBidAssets FROM sales
 UNION
-SELECT slot, txHash, nfts, cancelType AS activityType, lovelace, policyId FROM cancellations
+SELECT slot, txHash, assets, cancelType AS activityType, lovelace, policyId, addBidAssets FROM cancellations
 ) ORDER BY slot DESC limit 100;
 
 CREATE TABLE IF NOT EXISTS checkpoint (
