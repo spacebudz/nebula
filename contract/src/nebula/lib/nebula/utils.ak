@@ -1,9 +1,14 @@
 use aiken/list
-use aiken/transaction.{InlineDatum, Input, ScriptContext, Spend, Transaction}
+use aiken/transaction.{
+  InlineDatum, Input, Output, OutputReference, ScriptContext, Spend, Transaction,
+  TransactionId,
+}
 use aiken/transaction/credential.{Address,
   PublicKeyCredential, ScriptCredential}
 use aiken/transaction/value.{Value}
 use nebula/constants
+use nebula/fixture
+use nebula/types.{PaymentDatum}
 
 pub fn get_own_input(ctx: ScriptContext) -> Input {
   when ctx.purpose is {
@@ -60,18 +65,42 @@ pub fn tx_signed_by_address(
   }
 }
 
-/// We assume outputs are unique because of datum tagging.
-/// We also assume the datum is inline
+test tx_signed_by_address_1() {
+  tx_signed_by_address(
+    fixture.tx([], []),
+    fixture.keyhash_address(#[0, 1, 2, 3, 4, 5, 6]),
+    value.zero(),
+  )
+}
+
+test tx_signed_by_address_2() {
+  tx_signed_by_address(
+    fixture.tx([], []),
+    fixture.scripthash_address(#[1, 2, 3]),
+    value.from_asset(#[0, 0, 0], constants.script_owner, 1),
+  )
+}
+
+test tx_signed_by_address_3() {
+  !tx_signed_by_address(
+    fixture.tx([], []),
+    fixture.scripthash_address(#[1, 2, 3]),
+    value.from_asset(#[0, 0, 1], constants.script_owner, 1),
+  )
+}
+
+/// We assert outputs are unique because of datum tagging.
+/// We also assert the datum is inline
 pub fn value_paid_to_with_datum(
   tx: Transaction,
   address: Address,
-  datum: Data,
+  payment_datum: PaymentDatum,
 ) -> Value {
   when
     list.filter(
       tx.outputs,
       fn(output) {
-        output.address == address && output.datum == InlineDatum(datum)
+        output.address == address && output.datum == InlineDatum(payment_datum)
       },
     )
   is {
@@ -87,6 +116,50 @@ pub fn value_paid_to_with_datum(
   //     },
   //   )
   // output.value
+}
+
+test value_paid_to_with_datum_1() {
+  let payment_datum =
+    PaymentDatum {
+    output_reference: OutputReference {
+      transaction_id: TransactionId { hash: #[0] },
+      output_index: 0,
+    }}
+    
+  let output =
+    Output {
+      address: fixture.keyhash_address(#[1, 2, 3]),
+      value: value.from_lovelace(10000),
+      datum: InlineDatum(payment_datum),
+      reference_script: None,
+    }
+  value_paid_to_with_datum(
+    fixture.tx([], [output]),
+    fixture.keyhash_address(#[1, 2, 3]),
+    payment_datum,
+  ) == value.from_lovelace(10000)
+}
+
+test value_paid_to_with_datum_2() {
+  let payment_datum =
+    PaymentDatum {
+    output_reference: OutputReference {
+      transaction_id: TransactionId { hash: #[0] },
+      output_index: 0,
+    }}
+    
+  let output =
+    Output {
+      address: fixture.keyhash_address(#[1, 2, 3]),
+      value: value.from_lovelace(999),
+      datum: InlineDatum(payment_datum),
+      reference_script: None,
+    }
+  value_paid_to_with_datum(
+    fixture.tx([], [output]),
+    fixture.keyhash_address(#[1, 2, 3]),
+    payment_datum,
+  ) != value.from_lovelace(10000)
 }
 
 pub fn adjust_lower_bound(fee: Int, lower_bound: Option<Int>) -> Int {

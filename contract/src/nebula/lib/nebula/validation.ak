@@ -2,14 +2,17 @@ use aiken/builtin
 use aiken/bytearray
 use aiken/dict
 use aiken/list
-use aiken/transaction.{DatumHash, InlineDatum, NoDatum, Transaction}
+use aiken/transaction.{
+  DatumHash, InlineDatum, Input, NoDatum, Output, OutputReference, Transaction,
+  TransactionId,
+}
 use aiken/transaction/credential.{PublicKeyCredential}
 use aiken/transaction/value
 use nebula/constants
 use nebula/fixture
 use nebula/types.{
   BiddingDetails, DatumMetadata, Excluded, Included, ListingDetails,
-  PublicKeyHash, RoyaltyInfo, RoyaltyRecipient, RoyaltyToken,
+  PaymentDatum, PublicKeyHash, RoyaltyInfo, RoyaltyRecipient, RoyaltyToken,
   SpecificPolicyIdWithConstraints, SpecificValue,
 }
 use nebula/utils
@@ -123,6 +126,68 @@ pub fn paid_fee(
   //   accepted_lovelace,
   //   accepted_lovelace,
   // )
+}
+
+test paid_fee_1() {
+  let payment_datum =
+    PaymentDatum {
+    output_reference: OutputReference {
+      transaction_id: TransactionId { hash: #[0] },
+      output_index: 0,
+    }}
+    
+  let output =
+    Output {
+      address: fixture.keyhash_address(#[1, 2, 3]),
+      value: value.from_lovelace(500),
+      datum: InlineDatum(payment_datum),
+      reference_script: None,
+    }
+  let output_2 =
+    Output {
+      address: fixture.keyhash_address(#[4, 5, 6]),
+      value: value.from_lovelace(200),
+      datum: InlineDatum(payment_datum),
+      reference_script: None,
+    }
+  let royalty_token =
+    RoyaltyToken { policy_id: #[1, 2, 3, 4], asset_name: #[1, 2, 3, 4] }
+  let royalty_info =
+    RoyaltyInfo {
+    recipients: [
+      RoyaltyRecipient {
+        address: fixture.keyhash_address(#[1, 2, 3]),
+        fee: 20,
+        min_fee: Some(200),
+        max_fee: Some(800),
+      },
+      RoyaltyRecipient {
+        address: fixture.keyhash_address(#[4, 5, 6]),
+        fee: 100,
+        min_fee: Some(200),
+        max_fee: Some(800),
+      },
+    ]}
+    
+  let reference_input =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: TransactionId { hash: #[0] },
+        output_index: 0,
+      },
+      output: Output {
+        address: fixture.keyhash_address(#[1, 2, 3]),
+        value: value.from_asset(
+          royalty_token.policy_id,
+          royalty_token.asset_name,
+          1,
+        ),
+        datum: InlineDatum(royalty_info),
+        reference_script: None,
+      },
+    }
+  let tx = fixture.tx([reference_input], [output, output_2])
+  paid_fee(tx, payment_datum, 1000, royalty_token) == Some(300)
 }
 
 pub fn paid_buyer(
@@ -282,6 +347,83 @@ pub fn paid_buyer(
   // has_type && has_traits && policy_id == sell_policy_id
 }
 
+test paid_buyer_1() {
+  let payment_datum =
+    PaymentDatum {
+    output_reference: OutputReference {
+      transaction_id: TransactionId { hash: #[0] },
+      output_index: 0,
+    }}
+    
+  let output =
+    Output {
+      address: fixture.keyhash_address(#[1, 2, 3]),
+      value: value.from_asset(#[1, 2, 3], #[1, 2, 3], 1),
+      datum: InlineDatum(payment_datum),
+      reference_script: None,
+    }
+  let tx = fixture.tx([], [output])
+  let bidding_details =
+    BiddingDetails {
+      owner: fixture.keyhash_address(#[1, 2, 3]),
+      requested_option: SpecificValue(
+      value.from_asset(#[1, 2, 3], #[1, 2, 3], 1))
+      ,
+    }
+  paid_buyer(tx, payment_datum, bidding_details)
+}
+
+test paid_buyer_2() {
+  let payment_datum =
+    PaymentDatum {
+    output_reference: OutputReference {
+      transaction_id: TransactionId { hash: #[0] },
+      output_index: 0,
+    }}
+    
+  let output =
+    Output {
+      address: fixture.keyhash_address(#[1, 2, 3]),
+      value: value.from_asset(#[1, 2, 3], #[0, 13, 225, 64, 66, 117, 100], 1),
+      datum: InlineDatum(payment_datum),
+      reference_script: None,
+    }
+  let datum_metadata =
+    DatumMetadata {
+      metadata: dict.new()
+      |> dict.insert(#[116, 121, 112, 101], builtin.b_data(#[68, 111, 103]))
+      |> dict.insert(
+        #[116, 114, 97, 105, 116, 115],
+        builtin.list_data([builtin.b_data(#[65, 120, 101])]),
+      ),
+      version: 1,
+    }
+  let reference_input =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: TransactionId { hash: #[0] },
+        output_index: 0,
+      },
+      output: Output {
+        address: fixture.keyhash_address(#[1, 2, 3]),
+        value: value.from_asset(#[1, 2, 3], #[0, 6, 67, 176, 66, 117, 100], 1),
+        datum: InlineDatum(datum_metadata),
+        reference_script: None,
+      },
+    }
+  let tx = fixture.tx([reference_input], [output])
+  let bidding_details =
+    BiddingDetails {
+      owner: fixture.keyhash_address(#[1, 2, 3]),
+      requested_option: SpecificPolicyIdWithConstraints(
+        #[1, 2, 3],
+        [#[68, 111, 103]],
+        [Included(#[65, 120, 101])],
+      ),
+    }
+  paid_buyer(tx, payment_datum, bidding_details)
+}
+
 pub fn paid_seller(
   tx: Transaction,
   payment_datum: Data,
@@ -294,7 +436,51 @@ pub fn paid_seller(
 }
 
 test paid_seller_1() {
-  let tx = fixture.tx_1()
-  // TODO
-  tx == tx
+  let payment_datum =
+    PaymentDatum {
+    output_reference: OutputReference {
+      transaction_id: TransactionId { hash: #[0] },
+      output_index: 0,
+    }}
+    
+  let output =
+    Output {
+      address: fixture.keyhash_address(#[1, 2, 3]),
+      value: value.from_lovelace(10000),
+      datum: InlineDatum(payment_datum),
+      reference_script: None,
+    }
+  let tx = fixture.tx([], [output])
+  let listing_details =
+    ListingDetails {
+      owner: fixture.keyhash_address(#[1, 2, 3]),
+      requested_lovelace: 0,
+      private_listing: None,
+    }
+  paid_seller(tx, payment_datum, listing_details, 10000)
+}
+
+test paid_seller_2() {
+  let payment_datum =
+    PaymentDatum {
+    output_reference: OutputReference {
+      transaction_id: TransactionId { hash: #[0] },
+      output_index: 0,
+    }}
+    
+  let output =
+    Output {
+      address: fixture.keyhash_address(#[1, 2, 3]),
+      value: value.from_lovelace(900),
+      datum: InlineDatum(payment_datum),
+      reference_script: None,
+    }
+  let tx = fixture.tx([], [output])
+  let listing_details =
+    ListingDetails {
+      owner: fixture.keyhash_address(#[1, 2, 3]),
+      requested_lovelace: 0,
+      private_listing: None,
+    }
+  !paid_seller(tx, payment_datum, listing_details, 10000)
 }

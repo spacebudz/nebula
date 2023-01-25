@@ -1,16 +1,35 @@
+// This file creates some fixtures we can use for testing
+
 use aiken/dict
 use aiken/interval.{Interval, IntervalBound, PositiveInfinity}
-use aiken/transaction.{Transaction, TransactionId}
+use aiken/transaction.{Input, Output, Transaction, TransactionId}
+use aiken/transaction/credential.{Address,
+  PublicKeyCredential, ScriptCredential}
 use aiken/transaction/value
+use nebula/constants
 
-pub fn tx_1() -> Transaction {
+pub fn keyhash_address(keyhash: ByteArray) {
+  Address {
+    payment_credential: PublicKeyCredential(keyhash),
+    stake_credential: None,
+  }
+}
+
+pub fn scripthash_address(scripthash: ByteArray) {
+  Address {
+    payment_credential: ScriptCredential(scripthash),
+    stake_credential: None,
+  }
+}
+
+pub fn tx(reference_inputs: List<Input>, outputs: List<Output>) -> Transaction {
   let tx =
     Transaction {
       inputs: [],
-      reference_inputs: [],
-      outputs: [],
+      reference_inputs,
+      outputs,
       fee: value.zero(),
-      mint: value.zero(),
+      mint: value.from_asset(#[0, 0, 0], constants.script_owner, -1),
       certificates: [],
       withdrawals: dict.new(),
       validity_range: Interval {
@@ -23,7 +42,7 @@ pub fn tx_1() -> Transaction {
           is_inclusive: True,
         },
       },
-      extra_signatories: [],
+      extra_signatories: [#[0, 1, 2, 3, 4, 5, 6]],
       redeemers: dict.new(),
       datums: dict.new(),
       id: TransactionId { hash: #[] },
