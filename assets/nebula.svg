@@ -1,1 +1,37 @@
-<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1080 1080"><defs><style>.cls-1{fill:none;}.cls-2{fill:url(#radial-gradient);}</style><radialGradient id="radial-gradient" cx="674.86" cy="365.53" r="391.97" gradientTransform="translate(0 -15.91) scale(1 0.96)" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#f491a8"/><stop offset="0.55" stop-color="#ec008c"/><stop offset="1" stop-color="#5a2d8e"/></radialGradient></defs><title>Nebula</title><rect class="cls-1" width="1080" height="1080"/><path class="cls-2" d="M226.29,409.14c-11.22-62.34,24.76-122.9,74.15-137.7,56.82-17,116.56,13,172.39,22.82,20.86,3.67,42.89,7.18,62.39-2.52,34-16.92,42.47-62.55,85.78-67.16,41-4.37,76.5,32.87,102.53,67.55,24.11,32.12,44.66,68.32,71.34,97.29,23.16,25.15,52.4,47.71,59.42,84.46,11.5,60.31-46.2,104-88.76,78.44-15.31-9.18-20.9-19.39-38.79-8.13-17.3,10.87-26.61,40.52-21.81,62.83,3.28,15.25,10.06,29.07,13.84,44.15,11.61,46.42-7.65,97.69-37.3,130.22-41.59,45.64-102,87-159.86,70.8s-97.12-82.92-129.49-138.28Q326.69,602,261.27,490.06c-11.42-19.54-23-39.64-30.17-61.79A149.08,149.08,0,0,1,226.29,409.14Z"/></svg>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 24.0.2, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 1081 1081" style="enable-background:new 0 0 1081 1081;" xml:space="preserve">
+<style type="text/css">
+	.st0{clip-path:url(#SVGID_2_);}
+	.st1{fill:url(#SVGID_3_);}
+</style>
+<title>Asset 1</title>
+<g id="Layer_2_1_">
+	<g id="Layer_1-2">
+		<g>
+			<defs>
+				<path id="SVGID_1_" d="M917.1,370c0,65-88,168.2-212.3,240.7c-133.7,78-119.1,227.8-262.7,207.1
+					C290,795.9,163.9,693.2,163.9,539.5s124.6-278.3,278.3-278.3c59.7,0,139.7,38.1,221.3,38.8C791.9,301.2,917.1,276,917.1,370z"/>
+			</defs>
+			<clipPath id="SVGID_2_">
+				<use xlink:href="#SVGID_1_"  style="overflow:visible;"/>
+			</clipPath>
+			<g class="st0">
+				
+					<radialGradient id="SVGID_3_" cx="481.257" cy="1365.3749" r="768.8748" gradientTransform="matrix(1 0 0 -0.96 291.64 1395.042)" gradientUnits="userSpaceOnUse">
+					<stop  offset="0" style="stop-color:#F490A7"/>
+					<stop  offset="0.55" style="stop-color:#E90E8B"/>
+					<stop  offset="1" style="stop-color:#5B2D8D"/>
+				</radialGradient>
+				<path class="st1" d="M-107,231.9C-129,109.6-58.4-9.2,38.5-38.2C149.9-71.6,267.1-12.7,376.6,6.5c40.9,7.2,84.1,14.1,122.4-4.9
+					c66.7-33.2,83.3-122.7,168.3-131.7c80.5-8.6,150.1,64.5,201.1,132.5c47.3,63,87.6,134,139.9,190.8
+					c45.4,49.3,102.8,93.6,116.5,165.7c22.6,118.3-90.6,203.9-174.1,153.9c-30-18-41-38-76.1-16c-33.9,21.3-52.2,79.5-42.8,123.2
+					c6.4,29.9,19.7,57,27.1,86.6c22.8,91.1-15,191.6-73.2,255.5c-81.6,89.6-200.1,170.6-313.6,138.9
+					c-113.3-31.7-190.5-162.7-254-271.3C132.7,683.4,47.2,537-38.4,390.6c-22.4-38.3-45.3-77.8-59.2-121.2
+					C-101.5,257.1-104.7,244.6-107,231.9z"/>
+			</g>
+		</g>
+	</g>
+</g>
+</svg>
