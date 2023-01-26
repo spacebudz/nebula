@@ -14,6 +14,7 @@
 ## Quick start
 
 1. Import `Contract` and `Lucid` and create royalty/fee token.
+**Note**: The ideal way to handle the royalty token is to have it under the same `policy id` as the collection. This will make the authentication process smoother and more efficient. However, Nebula allows for specifying a different `policy id` if necessary. If you have a royalty token already you can skip the step of the royalty token creation.
 
 ```ts
 import { Contract } from "https://deno.land/x/nebula@0.1.3/contract/mod.ts" // TODO
@@ -290,6 +291,51 @@ deno task test
 
 ```
 deno task test:contract
+```
+
+### Royalty info specification
+
+The ideal way to handle the royalty token is to have it under the same `policy id` as the collection. This will make the authentication process smoother and more efficient. However, Nebula allows for specifying a different `policy id` if necessary.\
+The `asset name`must be `001f4d70526f79616c7479` (hex encoded), it contains the [CIP-0067](https://github.com/cardano-foundation/CIPs/blob/master/CIP-0067/README.md) label `500`.
+
+The royalty info datum is specified as follows (CDDL):
+
+```cddl
+big_int = int / big_uint / big_nint
+big_uint = #6.2(bounded_bytes)
+big_nint = #6.3(bounded_bytes)
+
+optional_big_int = #6.121([big_int]) / #6.122([])
+
+royalty_recipient = #6.121([
+              address,                    ; definition can be derived from: 
+                                          ; https://github.com/input-output-hk/plutus/blob/master/plutus-ledger-api/src/PlutusLedgerApi/V1/Address.hs#L31
+              int,                        ; fee
+              optional_big_int,           ; min fee
+              optional_big_int,           ; max fee
+            ])
+
+royalty_info = #6.121([[ * royalty_recipient ]])
+```
+
+### Collection offer constraints specification
+
+To take advantage of collection offers with constraints, your NFT collection needs to comply with [CIP-0068](https://github.com/cardano-foundation/CIPs/blob/master/CIP-0068/README.md). The metadata **MUST** contain two additional key/value pairs (CDDL):
+```
+{ 
+  ...
+  type => bounded_bytes,
+  traits => [ * bounded_bytes ] 
+}
+```
+Example (JSON):
+```json
+{
+  "image": "ipfs://..",
+  "name": "SpaceBud #650",
+  "type": "Bear",
+  "traits": ["Chestplate", "Belt"]
+}
 ```
 
 ### Protocol fee
