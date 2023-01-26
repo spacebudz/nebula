@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="180px" src="./assets/nebula.svg" align="center"/>
+  <img width="190px" src="./assets/nebula.svg" align="center"/>
   <h1 align="center">Nebula</h1>
   <p align="center">A Cardano NFT marketplace contract including chain indexer and event listener for individual projects.</p>
 </p>
