@@ -206,7 +206,7 @@ Deno.test("List and buy", async () => {
 
 Deno.test("Bid and sell", async () => {
   await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
-    await contract.bid([idToBud(0)], 800000000n),
+    await contract.bid({ [idToBud(0)]: 1n }, 800000000n),
   );
   const [bid] = await contract.getBids({ assetName: idToBud(0) });
   await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
@@ -216,7 +216,7 @@ Deno.test("Bid and sell", async () => {
 
 Deno.test("List and cancel", async () => {
   await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
-    await contract.list([idToBud(0)], 800000000n),
+    await contract.list({ [idToBud(0)]: 1n }, 800000000n),
   );
   const [listing] = await contract.getListings(idToBud(0));
   try {

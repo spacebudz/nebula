@@ -22,3 +22,6 @@ export type Constraints = {
   types?: string[];
   traits?: { negation?: boolean; trait: string }[];
 };
+
+export type AssetName = string;
+export type NameAndQuantity = Record<AssetName, bigint>;

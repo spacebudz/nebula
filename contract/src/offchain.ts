@@ -36,7 +36,13 @@ import {
   toAssets,
 } from "../../common/utils.ts";
 import * as D from "../../common/contract.types.ts";
-import { Constraints, ContractConfig, RoyaltyRecipient } from "./types.ts";
+import {
+  AssetName,
+  Constraints,
+  ContractConfig,
+  NameAndQuantity,
+  RoyaltyRecipient,
+} from "./types.ts";
 import { budConfig } from "./config.ts";
 
 export class Contract {
@@ -144,13 +150,19 @@ export class Contract {
     return txSigned.submit();
   }
 
+  /**
+   * List asset(s) for a specified lovelace value. Optionally the listing could be private.\
+   * Assets can be specified as either an array of asset names
+   * (assuming each asset has a quantity of 1) or as a map,
+   * where the quantity of each asset can be chosen.
+   */
   async list(
-    assetNames: string[],
+    assets: NameAndQuantity | AssetName[],
     lovelace: Lovelace,
     privateListing?: Address | null,
   ): Promise<TxHash> {
     const tx = await this.lucid.newTx()
-      .compose(await this._list(assetNames, lovelace, privateListing))
+      .compose(await this._list(assets, lovelace, privateListing))
       .complete();
 
     const txSigned = await tx.sign().complete();
@@ -211,17 +223,25 @@ export class Contract {
     return txSigned.submit();
   }
 
-  /** Create a bid on a specific token or on a bundle within the collection. */
-  async bid(assetNames: string[], lovelace: Lovelace): Promise<TxHash> {
+  /**
+   * A bid can be placed on a specific token or a bundle within a collection
+   * by specifying the assets as either an array of asset names
+   * (assuming each asset has a quantity of 1) or as a map,
+   * where the quantity of each asset can be chosen.
+   */
+  async bid(
+    assets: NameAndQuantity | AssetName[],
+    lovelace: Lovelace,
+  ): Promise<TxHash> {
     const tx = await this.lucid.newTx()
-      .compose(await this._bid(assetNames, lovelace))
+      .compose(await this._bid(assets, lovelace))
       .complete();
 
     const txSigned = await tx.sign().complete();
     return txSigned.submit();
   }
 
-  /** Create an open bid on the collection. Optionally add constraints. */
+  /** Create a collection offer on the collection. Optionally add constraints. */
   async bidOpen(
     lovelace: Lovelace,
     constraints?: {
@@ -237,6 +257,7 @@ export class Contract {
     return txSigned.submit();
   }
 
+  /** Swap asset(s) for other asset(s). Lovelace could also be included on the offering side. */
   async bidSwap(
     offering: {
       lovelace?: Lovelace;
@@ -340,6 +361,22 @@ export class Contract {
 
     const txSigned = await tx.sign().complete();
     return txSigned.submit();
+  }
+
+  /** Get all listings and bids. If there are a lot of UTxOs it is recommended using an indexer (Nebula Watcher) instead. */
+  async getAllListingsAndBids(): Promise<UTxO[]> {
+    const utxos = await this.lucid.utxosAt(
+      paymentCredentialOf(this.tradeAddress),
+    );
+    return utxos.filter((utxo) =>
+      Object.keys(utxo.assets)
+        .filter((unit) => unit !== "lovelace")
+        .every(
+          (unit) =>
+            unit.startsWith(this.mintPolicyId) ||
+            unit.startsWith(this.config.policyId),
+        )
+    );
   }
 
   /** Get a specific listing or bid. */
@@ -590,13 +627,22 @@ export class Contract {
     return txSigned.submit();
   }
 
+  /**
+   * List asset(s) for a specified lovelace value. Optionally the listing could be private.\
+   * Assets can be specified as either an array of asset names
+   * (assuming each asset has a quantity of 1) or as a map,
+   * where the quantity of each asset can be chosen.
+   */
   async _list(
-    assetNames: string[],
+    assets: NameAndQuantity | AssetName[],
     lovelace: Lovelace,
     privateListing?: Address | null,
   ): Promise<Tx> {
-    if (assetNames.length <= 0) {
-      throw new Error("Needs at least one asset name.");
+    const assetsMap: NameAndQuantity = assets instanceof Array
+      ? Object.fromEntries(assets.map((assetName) => [assetName, 1n]))
+      : assets;
+    if (Object.keys(assetsMap).length <= 0) {
+      throw new Error("Needs at least one asset.");
     }
     const ownerAddress = await this.lucid.wallet.address();
     const { stakeCredential } = this.lucid.utils
@@ -623,8 +669,10 @@ export class Contract {
     };
 
     const listingAssets: Assets = Object.fromEntries(
-      assetNames.map(
-        (assetName) => [toUnit(this.config.policyId, assetName), 1n],
+      Object.entries(assetsMap).map(
+        (
+          [assetName, quantity],
+        ) => [toUnit(this.config.policyId, assetName), quantity],
       ),
     );
 
@@ -633,9 +681,21 @@ export class Contract {
     }, listingAssets);
   }
 
-  /** Create a bid on a specific token or a bundle within the collection. */
-  async _bid(assetNames: string[], lovelace: Lovelace): Promise<Tx> {
-    if (assetNames.length <= 0) {
+  /**
+   * A bid can be placed on a specific token or a bundle within a collection
+   * by specifying the assets as either an array of asset names
+   * (assuming each asset has a quantity of 1) or as a map,
+   * where the quantity of each asset can be chosen.
+   */
+  async _bid(
+    assets: NameAndQuantity | AssetName[],
+    lovelace: Lovelace,
+  ): Promise<Tx> {
+    const assetsMap: NameAndQuantity = assets instanceof Array
+      ? Object.fromEntries(assets.map((assetName) => [assetName, 1n]))
+      : assets;
+    const bidNames = Object.keys(assetsMap);
+    if (bidNames.length <= 0) {
       throw new Error("Needs at least one asset name.");
     }
     const ownerAddress = await this.lucid.wallet.address();
@@ -643,14 +703,16 @@ export class Contract {
       ownerAddress,
     );
     const bidAssets: Assets = Object.fromEntries(
-      assetNames.map(
-        (assetName) => [toUnit(this.config.policyId, assetName), 1n],
+      Object.entries(assetsMap).map(
+        (
+          [assetName, quantity],
+        ) => [toUnit(this.config.policyId, assetName), quantity],
       ),
     );
 
-    const bidAssetName = assetNames.length > 1
+    const bidAssetName = bidNames.length > 1
       ? fromText("BidBundle")
-      : fromText("Bid") + assetNames[0];
+      : fromText("Bid") + bidNames[0];
 
     // We include the stake key of the signer
     const adjustedTradeAddress = stakeCredential
@@ -737,6 +799,7 @@ export class Contract {
       .attachMintingPolicy(this.mintPolicy);
   }
 
+  /** Swap asset(s) for another asset(s). Ada could also be included on the offering side. */
   async _bidSwap(
     offering: {
       lovelace?: Lovelace;
