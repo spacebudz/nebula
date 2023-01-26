@@ -300,6 +300,5 @@ Nebula charges by default a protocol fee for each sale, which is currently about
 ## Todo
 
 - [ ] Improve and extend documentation.
-- [ ] Move contract to Aiken.
 - [ ] Make the Nebula contract also available on NPM as official package.
 

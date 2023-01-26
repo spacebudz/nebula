@@ -20,7 +20,6 @@ import {
   Unit,
   UTxO,
 } from "../../deps.ts";
-// import scripts from "./ghc/scripts.json" assert { type: "json" };
 import nebulaScript from "./nebula/assets/nebula/spend/payment_script.json" assert {
   type: "json",
 };
