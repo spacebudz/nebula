@@ -296,7 +296,7 @@ deno task test:contract
 ### Royalty info specification
 
 The ideal way to handle the royalty token is to have it under the same `policy id` as the collection. This will make the authentication process smoother and more efficient. However, Nebula allows for specifying a different `policy id` if necessary.\
-The `asset name`must be `001f4d70526f79616c7479` (hex encoded), it contains the [CIP-0067](https://github.com/cardano-foundation/CIPs/blob/master/CIP-0067/README.md) label `500`.
+The `asset name` **must** be `001f4d70526f79616c7479` (hex encoded), it contains the [CIP-0067](https://github.com/cardano-foundation/CIPs/blob/master/CIP-0067/README.md) label `500`.
 
 The royalty info datum is specified as follows (CDDL):
 
@@ -320,7 +320,7 @@ royalty_info = #6.121([[ * royalty_recipient ]])
 
 ### Collection offer constraints specification
 
-To take advantage of collection offers with constraints, your NFT collection needs to comply with [CIP-0068](https://github.com/cardano-foundation/CIPs/blob/master/CIP-0068/README.md). The metadata **MUST** contain two additional key/value pairs (CDDL):
+To take advantage of collection offers with constraints, your NFT collection needs to comply with [CIP-0068](https://github.com/cardano-foundation/CIPs/blob/master/CIP-0068/README.md). The metadata **must** contain two additional key/value pairs (CDDL):
 ```
 { 
   ...
