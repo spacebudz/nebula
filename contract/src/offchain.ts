@@ -67,12 +67,16 @@ export class Contract {
 
     const { policyId, assetName } = fromUnit(this.config.royaltyToken);
 
-    this.fundProtocol = this.lucid.network === "Mainnet"
-      ? this.config.fundProtocol ||
-          typeof this.config.fundProtocol === "undefined"
-        ? true
-        : false
-      : false;
+    if (this.config.royaltyToken === SPACEBUDZ_ROYALTY_TOKEN) {
+      this.fundProtocol = false;
+    } else {
+      this.fundProtocol = this.lucid.network === "Mainnet"
+        ? this.config.fundProtocol ||
+            typeof this.config.fundProtocol === "undefined"
+          ? true
+          : false
+        : false;
+    }
 
     const protocolKey = this.lucid.utils.getAddressDetails(
       PROTOCOL_FUND_ADDRESS,
@@ -1163,6 +1167,8 @@ export class Contract {
     return { tx, remainingLovelace };
   }
 }
+
+const SPACEBUDZ_ROYALTY_TOKEN = "";
 
 const PROTOCOL_FUND_ADDRESS =
   "addr1vxuj4yyqlz0k9er5geeepx0awh2t6kkes0nyp429hsttt3qrnucsx";
