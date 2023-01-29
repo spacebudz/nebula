@@ -490,6 +490,7 @@ export class Contract {
           maxFee: recipient.maxFee || null,
         };
       }),
+      version: 1n,
     };
 
     const tx = await lucid.newTx()
@@ -613,6 +614,7 @@ export class Contract {
         minFee: recipient.minFee || null,
         maxFee: recipient.maxFee || null,
       })),
+      version: 1n,
     };
 
     const tx = await this.lucid.newTx()

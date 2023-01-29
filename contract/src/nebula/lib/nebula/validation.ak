@@ -154,21 +154,22 @@ test paid_fee_1() {
     RoyaltyToken { policy_id: #[1, 2, 3, 4], asset_name: #[1, 2, 3, 4] }
   let royalty_info =
     RoyaltyInfo {
-    recipients: [
-      RoyaltyRecipient {
-        address: fixture.keyhash_address(#[1, 2, 3]),
-        fee: 20,
-        min_fee: Some(200),
-        max_fee: Some(800),
-      },
-      RoyaltyRecipient {
-        address: fixture.keyhash_address(#[4, 5, 6]),
-        fee: 100,
-        min_fee: Some(200),
-        max_fee: Some(800),
-      },
-    ]}
-    
+      recipients: [
+        RoyaltyRecipient {
+          address: fixture.keyhash_address(#[1, 2, 3]),
+          fee: 20,
+          min_fee: Some(200),
+          max_fee: Some(800),
+        },
+        RoyaltyRecipient {
+          address: fixture.keyhash_address(#[4, 5, 6]),
+          fee: 100,
+          min_fee: Some(200),
+          max_fee: Some(800),
+        },
+      ],
+      version: 1,
+    }
   let reference_input =
     Input {
       output_reference: OutputReference {

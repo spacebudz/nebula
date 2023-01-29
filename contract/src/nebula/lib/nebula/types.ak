@@ -18,9 +18,9 @@ pub type BiddingDetails {
   requested_option: BidOption,
 }
 
-// TODO: Fix aiken assert
 pub type RoyaltyInfo {
   recipients: List<RoyaltyRecipient>,
+  version: Int,
 }
 
 pub type RoyaltyRecipient {
