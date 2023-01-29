@@ -315,7 +315,10 @@ royalty_recipient = #6.121([
               optional_big_int,           ; max fee
             ])
 
-royalty_info = #6.121([[ * royalty_recipient ]])
+royalty_recipients = [ * royalty_recipient ]
+version = 1   ; version is of type int, we start with version 1
+
+royalty_info = #6.121([royalty_recipients, version])
 ```
 
 ### Collection offer constraints specification
