@@ -16,7 +16,7 @@ fn spend(
 ) -> Bool {
   let tx = ctx.transaction
   let own_input = get_own_input(ctx)
-  let payment_datum: Data =
+  let payment_datum =
     PaymentDatum { output_reference: own_input.output_reference }
 
   when action is {

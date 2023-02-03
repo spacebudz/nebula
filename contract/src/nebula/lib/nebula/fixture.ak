@@ -29,7 +29,7 @@ pub fn tx(reference_inputs: List<Input>, outputs: List<Output>) -> Transaction {
       reference_inputs,
       outputs,
       fee: value.zero(),
-      mint: value.from_asset(#[0, 0, 0], constants.script_owner, -1),
+      mint: value.from_asset(#"000000", constants.script_owner, -1),
       certificates: [],
       withdrawals: dict.new(),
       validity_range: Interval {
@@ -42,10 +42,10 @@ pub fn tx(reference_inputs: List<Input>, outputs: List<Output>) -> Transaction {
           is_inclusive: True,
         },
       },
-      extra_signatories: [#[0, 1, 2, 3, 4, 5, 6]],
+      extra_signatories: [#"00010203040506"],
       redeemers: dict.new(),
       datums: dict.new(),
-      id: TransactionId { hash: #[] },
+      id: TransactionId { hash: #"" },
     }
   tx
 }

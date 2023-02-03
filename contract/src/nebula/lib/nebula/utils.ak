@@ -68,7 +68,7 @@ pub fn tx_signed_by_address(
 test tx_signed_by_address_1() {
   tx_signed_by_address(
     fixture.tx([], []),
-    fixture.keyhash_address(#[0, 1, 2, 3, 4, 5, 6]),
+    fixture.keyhash_address(#"00010203040506"),
     value.zero(),
   )
 }
@@ -76,16 +76,16 @@ test tx_signed_by_address_1() {
 test tx_signed_by_address_2() {
   tx_signed_by_address(
     fixture.tx([], []),
-    fixture.scripthash_address(#[1, 2, 3]),
-    value.from_asset(#[0, 0, 0], constants.script_owner, 1),
+    fixture.scripthash_address(#"010203"),
+    value.from_asset(#"000000", constants.script_owner, 1),
   )
 }
 
 test tx_signed_by_address_3() {
   !tx_signed_by_address(
     fixture.tx([], []),
-    fixture.scripthash_address(#[1, 2, 3]),
-    value.from_asset(#[0, 0, 1], constants.script_owner, 1),
+    fixture.scripthash_address(#"010203"),
+    value.from_asset(#"000001", constants.script_owner, 1),
   )
 }
 
@@ -122,20 +122,20 @@ test value_paid_to_with_datum_1() {
   let payment_datum =
     PaymentDatum {
     output_reference: OutputReference {
-      transaction_id: TransactionId { hash: #[0] },
+      transaction_id: TransactionId { hash: #"00" },
       output_index: 0,
     }}
     
   let output =
     Output {
-      address: fixture.keyhash_address(#[1, 2, 3]),
+      address: fixture.keyhash_address(#"010203"),
       value: value.from_lovelace(10000),
       datum: InlineDatum(payment_datum),
       reference_script: None,
     }
   value_paid_to_with_datum(
     fixture.tx([], [output]),
-    fixture.keyhash_address(#[1, 2, 3]),
+    fixture.keyhash_address(#"010203"),
     payment_datum,
   ) == value.from_lovelace(10000)
 }
@@ -144,20 +144,20 @@ test value_paid_to_with_datum_2() {
   let payment_datum =
     PaymentDatum {
     output_reference: OutputReference {
-      transaction_id: TransactionId { hash: #[0] },
+      transaction_id: TransactionId { hash: #"00" },
       output_index: 0,
     }}
     
   let output =
     Output {
-      address: fixture.keyhash_address(#[1, 2, 3]),
+      address: fixture.keyhash_address(#"010203"),
       value: value.from_lovelace(999),
       datum: InlineDatum(payment_datum),
       reference_script: None,
     }
   value_paid_to_with_datum(
     fixture.tx([], [output]),
-    fixture.keyhash_address(#[1, 2, 3]),
+    fixture.keyhash_address(#"010203"),
     payment_datum,
   ) != value.from_lovelace(10000)
 }

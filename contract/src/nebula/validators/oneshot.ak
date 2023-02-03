@@ -1,7 +1,11 @@
 use aiken/list
 use aiken/transaction.{OutputReference, ScriptContext}
 
-fn mint(output_reference: OutputReference, _, ctx: ScriptContext) -> Bool {
+fn mint(
+  output_reference: OutputReference,
+  _redeemer: Void,
+  ctx: ScriptContext,
+) -> Bool {
   when
     list.find(
       ctx.transaction.inputs,
