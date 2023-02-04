@@ -1,7 +1,8 @@
+use aiken/dict
 use aiken/list
 use aiken/transaction.{
-  InlineDatum, Input, Output, OutputReference, ScriptContext, Spend, Transaction,
-  TransactionId,
+  Datum, DatumHash, InlineDatum, Input, NoDatum, Output, OutputReference,
+  ScriptContext, Spend, Transaction, TransactionId,
 }
 use aiken/transaction/credential.{Address,
   PublicKeyCredential, ScriptCredential}
@@ -11,28 +12,25 @@ use nebula/fixture
 use nebula/types.{PaymentDatum}
 
 pub fn get_own_input(ctx: ScriptContext) -> Input {
-  when ctx.purpose is {
-    Spend(output_reference) ->
-      when
-        list.find(
-          ctx.transaction.inputs,
-          fn(input) { input.output_reference == output_reference },
-        )
-      is {
-        Some(input) -> input
-        _ -> error
-      }
-    _ -> error
+  assert Spend(output_reference) = ctx.purpose
+  let tx = ctx.transaction
+  assert Some(input) =
+    list.find(
+      ctx.transaction.inputs,
+      fn(input) { input.output_reference == output_reference },
+    )
+  input
+}
+
+pub fn get_data(tx: Transaction, datum: Datum) -> Data {
+  when datum is {
+    NoDatum -> error
+    DatumHash(h) -> {
+      assert Some(d) = dict.get(tx.datums, h)
+      d
+    }
+    InlineDatum(d) -> d
   }
-  // TODO: Re-nable
-  // assert Spend(output_reference) = ctx.purpose
-  // let tx = ctx.transaction
-  // assert Some(input) =
-  //   list.find(
-  //     tx.inputs,
-  //     fn(input) { input.output_reference == output_reference },
-  //   )
-  // input
 }
 
 /// This is a special signing function. 
@@ -96,26 +94,14 @@ pub fn value_paid_to_with_datum(
   address: Address,
   payment_datum: PaymentDatum,
 ) -> Value {
-  when
+  assert [output] =
     list.filter(
       tx.outputs,
       fn(output) {
         output.address == address && output.datum == InlineDatum(payment_datum)
       },
     )
-  is {
-    [output] -> output.value
-    _ -> error
-  }
-  // TODO: Re-nable
-  // assert [output] =
-  //   list.filter(
-  //     tx.outputs,
-  //     fn(output) {
-  //       output.address == address && output.datum == InlineDatum(datum)
-  //     },
-  //   )
-  // output.value
+  output.value
 }
 
 test value_paid_to_with_datum_1() {

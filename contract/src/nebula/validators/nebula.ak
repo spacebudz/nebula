@@ -20,41 +20,17 @@ fn spend(
     PaymentDatum { output_reference: own_input.output_reference }
 
   when action is {
-    Sell ->
-      when datum is {
-        Bid(bidding_details) -> {
-          let accepted_lovelace = value.lovelace_of(own_input.output.value)
-          when
-            paid_fee(tx, payment_datum, accepted_lovelace, royalty_token)
-          is {
-            Some(_) ->
-              paid_protocol(tx, protocol_key) && paid_buyer(
-                tx,
-                payment_datum,
-                bidding_details,
-              )
-            None -> False
-          }
-        }
-        _ -> False
-      }
-    // TODO: Re-nable
-    // assert Bid(bidding_details) = datum
-    // let accepted_lovelace = value.lovelace_of(own_input.output.value)
-    // assert Some(_) =
-    //   paid_fee(
-    //     tx,
-    //     payment_datum,
-    //     accepted_lovelace,
-    //     royalty_token,
-    //     protocol_key,
-    //   )
-    // paid_protocol(tx, protocol_key) && paid_buyer(
-    //   tx,
-    //   payment_datum,
-    //   bidding_details,
-    //   metadata_keys,
-    // )
+    Sell -> {
+      assert Bid(bidding_details) = datum
+      let accepted_lovelace = value.lovelace_of(own_input.output.value)
+      assert Some(_) =
+        paid_fee(tx, payment_datum, accepted_lovelace, royalty_token)
+      paid_protocol(tx, protocol_key) && paid_buyer(
+        tx,
+        payment_datum,
+        bidding_details,
+      )
+    }
     Buy -> {
       assert Listing(listing_details) = datum
       let accepted_lovelace = listing_details.requested_lovelace

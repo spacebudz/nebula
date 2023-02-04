@@ -1,6 +1,5 @@
-use aiken/builtin
 use aiken/bytearray
-use aiken/dict
+use aiken/dict.{Dict}
 use aiken/list
 use aiken/transaction.{
   DatumHash, InlineDatum, Input, NoDatum, Output, OutputReference, Transaction,
@@ -77,7 +76,7 @@ pub fn paid_fee(
   accepted_lovelace: Int,
   royalty_token: RoyaltyToken,
 ) -> Option<Int> {
-  when
+  assert Some(royalty_input) =
     list.find(
       tx.reference_inputs,
       fn(input) {
@@ -88,57 +87,15 @@ pub fn paid_fee(
         ) == 1
       },
     )
-  is {
-    Some(royalty_input) -> {
-      let royalty_info = when royalty_input.output.datum is {
-        InlineDatum(datum) -> {
-          assert royalty_info: RoyaltyInfo = datum
-          // let (0, [raw_recipients, raw_version, ..]) =
-          //   builtin.un_constr_data(datum)
-          // assert recipients: List<RoyaltyRecipient> = raw_recipients
-          royalty_info
-        }
-        DatumHash(h) -> {
-          assert Some(datum) = dict.get(tx.datums, h)
-          assert royalty_info: RoyaltyInfo = datum
-          // let (0, [raw_recipients, raw_version, ..]) =
-          //   builtin.un_constr_data(datum)
-          // assert recipients: List<RoyaltyRecipient> = raw_recipients
-          royalty_info
-        }
-        _ -> error
-      }
-      checked_fee_recipients(
-        tx,
-        royalty_info.recipients,
-        payment_datum,
-        accepted_lovelace,
-        accepted_lovelace,
-      )
-    }
-    _ -> error
-  }
-  // TODO: Re-nable
-  // assert Some(royalty_input) =
-  //   list.find(
-  //     tx.reference_inputs,
-  //     fn(input) {
-  //       value.quantity_of(
-  //         input.output.value,
-  //         royalty_token.policy_id,
-  //         royalty_token.asset_name,
-  //       ) == 1
-  //     },
-  //   )
-  // assert InlineDatum(datum) = royalty_input.output.datum
-  // let royalty_info: RoyaltyInfo = datum
-  // checked_fee_recipients(
-  //   tx,
-  //   royalty_info,
-  //   payment_datum,
-  //   accepted_lovelace,
-  //   accepted_lovelace,
-  // )
+  assert royalty_info: RoyaltyInfo =
+    utils.get_data(tx, royalty_input.output.datum)
+  checked_fee_recipients(
+    tx,
+    royalty_info.recipients,
+    payment_datum,
+    accepted_lovelace,
+    accepted_lovelace,
+  )
 }
 
 test paid_fee_1() {
@@ -182,6 +139,7 @@ test paid_fee_1() {
         },
       ],
       version: 1,
+      extra: Void,
     }
   let reference_input =
     Input {
@@ -217,7 +175,7 @@ pub fn paid_buyer(
     SpecificPolicyIdWithConstraints(policy_id, types, traits) -> {
       let requested_value =
         utils.value_paid_to_with_datum(tx, bidding_details.owner, payment_datum)
-      when
+      assert Some((sell_policy_id, sell_asset_name, _)) =
         list.find(
           value.flatten(requested_value),
           fn(asset) {
@@ -225,215 +183,126 @@ pub fn paid_buyer(
             p == policy_id
           },
         )
-      is {
-        Some((sell_policy_id, sell_asset_name, _)) -> {
-          assert Some(metadata_input) =
-            list.find(
-              tx.reference_inputs,
-              fn(input) {
-                value.quantity_of(
-                  input.output.value,
-                  sell_policy_id,
-                  bytearray.concat(
-                    constants.label_100,
-                    bytearray.drop(sell_asset_name, constants.label_length),
-                  ),
-                ) == 1
-              },
-            )
-          let datum_metadata: DatumMetadata = when
-            metadata_input.output.datum
-          is {
-            NoDatum -> error
-            DatumHash(h) -> {
-              assert Some(datum) = dict.get(tx.datums, h)
-              datum
-            }
-            InlineDatum(datum) -> datum
-          }
-          let metadata_type: ByteArray = {
-            assert Some(t) =
-              dict.get(datum_metadata.metadata, constants.type_key)
-            builtin.un_b_data(t)
-          }
-          let metadata_traits: List<ByteArray> = {
-            assert Some(t) =
-              dict.get(datum_metadata.metadata, constants.traits_key)
-            list.map(builtin.un_list_data(t), fn(d) { builtin.un_b_data(d) })
-          }
-          let has_type = when types is {
-            [] -> True
-            l ->
-              list.any(
-                l,
-                fn(requested_type) { requested_type == metadata_type },
-              )
-          }
-          let has_traits = when traits is {
-            [] -> True
-            l ->
-              list.all(
-                l,
-                fn(requested_trait) {
-                  when requested_trait is {
-                    Included(trait) ->
-                      list.any(
-                        metadata_traits,
-                        fn(m_trait) { m_trait == trait },
-                      )
-                    Excluded(trait) ->
-                      !list.any(
-                        metadata_traits,
-                        fn(m_trait) { m_trait == trait },
-                      )
-                  }
-                },
-              )
-          }
-          has_type && has_traits && policy_id == sell_policy_id
-        }
-        _ -> False
+      assert Some(metadata_input) =
+        list.find(
+          tx.reference_inputs,
+          fn(input) {
+            value.quantity_of(
+              input.output.value,
+              sell_policy_id,
+              bytearray.concat(
+                constants.label_100,
+                bytearray.drop(sell_asset_name, constants.label_length),
+              ),
+            ) == 1
+          },
+        )
+      assert datum_metadata: DatumMetadata =
+        utils.get_data(tx, metadata_input.output.datum)
+      assert metadata_type: ByteArray = {
+        assert Some(t) = dict.get(datum_metadata.metadata, constants.type_key)
+        t
       }
+      assert metadata_traits: List<ByteArray> = {
+        assert Some(t) = dict.get(datum_metadata.metadata, constants.traits_key)
+        t
+      }
+      let has_type = when types is {
+        [] -> True
+        l -> list.any(l, fn(requested_type) { requested_type == metadata_type })
+      }
+      let has_traits = when traits is {
+        [] -> True
+        l ->
+          list.all(
+            l,
+            fn(requested_trait) {
+              when requested_trait is {
+                Included(trait) ->
+                  list.any(metadata_traits, fn(m_trait) { m_trait == trait })
+                Excluded(trait) ->
+                  !list.any(metadata_traits, fn(m_trait) { m_trait == trait })
+              }
+            },
+          )
+      }
+      let used_correct_policy_id = policy_id == sell_policy_id
+      has_type && has_traits && used_correct_policy_id
     }
   }
-  // TODO: Re-nable
-  // let requested_value =
-  //   value_paid_to_with_datum(tx, bidding_details.owner, payment_datum)
-  // assert Some((sell_policy_id, sell_asset_name, _)) =
-  //   list.find(
-  //     value.flatten(requested_value),
-  //     fn(asset) {
-  //       let (p, _, _) = asset
-  //       p == policy_id
-  //     },
-  //   )
-  // assert Some(metadata_input) =
-  //   list.find(
-  //     tx.reference_inputs,
-  //     fn(input) {
-  //       value.quantity_of(
-  //         input.output.value,
-  //         sell_policy_id,
-  //         bytearray.concat(
-  //           label_100,
-  //           bytearray.drop(sell_asset_name, label_length),
-  //         ),
-  //       ) == 1
-  //     },
-  //   )
-  // let datum_metadata: DatumMetadata = when metadata_input.output.datum is {
-  //   NoDatum -> error
-  //   DatumHash(h) -> {
-  //     assert Some(datum) = dict.get(tx.datums, h)
-  //     datum
-  //   }
-  //   InlineDatum(datum) -> datum
-  // }
-  // let metadata_type: ByteArray = {
-  //   assert Some(t) =
-  //     dict.get(datum_metadata.metadata, metadata_keys.type_key)
-  //   builtin.un_b_data(t)
-  // }
-  // let metadata_traits: List<ByteArray> = {
-  //   assert Some(t) =
-  //     dict.get(datum_metadata.metadata, metadata_keys.traits_key)
-  //   list.map(builtin.un_list_data(t), fn(d) { builtin.un_b_data(d) })
-  // }
-  // let has_type = when types is {
-  //   [] -> True
-  //   l -> list.any(l, fn(requested_type) { requested_type == metadata_type })
-  // }
-  // let has_traits = when traits is {
-  //   [] -> True
-  //   l ->
-  //     list.all(
-  //       l,
-  //       fn(requested_trait) {
-  //         let (negation, trait) = requested_trait
-  //         if negation < 0 {
-  //           !list.any(metadata_traits, fn(m_trait) { m_trait == trait })
-  //         } else {
-  //           list.any(metadata_traits, fn(m_trait) { m_trait == trait })
-  //         }
-  //       },
-  //     )
-  // }
-  // has_type && has_traits && policy_id == sell_policy_id
 }
 
-// test paid_buyer_1() {
-//   let payment_datum =
-//     PaymentDatum {
-//     output_reference: OutputReference {
-//       transaction_id: TransactionId { hash: #"00" },
-//       output_index: 0,
-//     }}
-//   let output =
-//     Output {
-//       address: fixture.keyhash_address(#"010203"),
-//       value: value.from_asset(#"010203", #"010203", 1),
-//       datum: InlineDatum(payment_datum),
-//       reference_script: None,
-//     }
-//   let tx = fixture.tx([], [output])
-//   let bidding_details =
-//     BiddingDetails {
-//       owner: fixture.keyhash_address(#"010203"),
-//       requested_option: SpecificValue(value.from_asset(#"010203", #"010203", 1)),
-//     }
-//   paid_buyer(tx, payment_datum, bidding_details)
-// }
+test paid_buyer_1() {
+  let payment_datum =
+    PaymentDatum {
+    output_reference: OutputReference {
+      transaction_id: TransactionId { hash: #"00" },
+      output_index: 0,
+    }}
+    
+  let output =
+    Output {
+      address: fixture.keyhash_address(#"010203"),
+      value: value.from_asset(#"010203", #"010203", 1),
+      datum: InlineDatum(payment_datum),
+      reference_script: None,
+    }
+  let tx = fixture.tx([], [output])
+  let bidding_details =
+    BiddingDetails {
+      owner: fixture.keyhash_address(#"010203"),
+      requested_option: SpecificValue(value.from_asset(#"010203", #"010203", 1)),
+    }
+  paid_buyer(tx, payment_datum, bidding_details)
+}
 
-// TODO
-// test paid_buyer_2() {
-//   let payment_datum =
-//     PaymentDatum {
-//     output_reference: OutputReference {
-//       transaction_id: TransactionId { hash: #"00" },
-//       output_index: 0,
-//     }}
-//   let output =
-//     Output {
-//       address: fixture.keyhash_address(#"010203"),
-//       value: value.from_asset(#"010203", #"000de140427564", 1),
-//       datum: InlineDatum(payment_datum),
-//       reference_script: None,
-//     }
-//   let datum_metadata =
-//     DatumMetadata {
-//       metadata: dict.new()
-//       |> dict.insert(#"74797065", builtin.b_data(#"446f67"))
-//       |> dict.insert(
-//         #"747261697473",
-//         builtin.list_data([builtin.b_data(#"417865")]),
-//       ),
-//       version: 1,
-//     }
-//   let reference_input =
-//     Input {
-//       output_reference: OutputReference {
-//         transaction_id: TransactionId { hash: #"00" },
-//         output_index: 0,
-//       },
-//       output: Output {
-//         address: fixture.keyhash_address(#"010203"),
-//         value: value.from_asset(#"010203", #"000643b0427564", 1),
-//         datum: InlineDatum(datum_metadata),
-//         reference_script: None,
-//       },
-//     }
-//   let tx = fixture.tx([reference_input], [output])
-//   let bidding_details =
-//     BiddingDetails {
-//       owner: fixture.keyhash_address(#"010203"),
-//       requested_option: SpecificPolicyIdWithConstraints(
-//         #"010203",
-//         [#"446f67"],
-//         [Included(#"417865")],
-//       ),
-//     }
-//   paid_buyer(tx, payment_datum, bidding_details)
-// }
+test paid_buyer_2() {
+  let payment_datum =
+    PaymentDatum {
+    output_reference: OutputReference {
+      transaction_id: TransactionId { hash: #"00" },
+      output_index: 0,
+    }}
+    
+  let output =
+    Output {
+      address: fixture.keyhash_address(#"010203"),
+      value: value.from_asset(#"010203", #"000de140427564", 1),
+      datum: InlineDatum(payment_datum),
+      reference_script: None,
+    }
+  let m = {
+    let m: Dict<ByteArray, Data> = dict.new()
+    m
+    |> dict.insert(#"74797065", #"446f67")
+    |> dict.insert(#"747261697473", [#"417865"])
+  }
+  let datum_metadata = DatumMetadata { metadata: m, version: 1, extra: Void }
+  let reference_input =
+    Input {
+      output_reference: OutputReference {
+        transaction_id: TransactionId { hash: #"00" },
+        output_index: 0,
+      },
+      output: Output {
+        address: fixture.keyhash_address(#"010203"),
+        value: value.from_asset(#"010203", #"000643b0427564", 1),
+        datum: InlineDatum(datum_metadata),
+        reference_script: None,
+      },
+    }
+  let tx = fixture.tx([reference_input], [output])
+  let bidding_details =
+    BiddingDetails {
+      owner: fixture.keyhash_address(#"010203"),
+      requested_option: SpecificPolicyIdWithConstraints(
+        #"010203",
+        [#"446f67"],
+        [Included(#"417865")],
+      ),
+    }
+  paid_buyer(tx, payment_datum, bidding_details)
+}
 
 pub fn paid_seller(
   tx: Transaction,
