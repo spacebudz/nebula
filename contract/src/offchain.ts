@@ -491,6 +491,7 @@ export class Contract {
         };
       }),
       version: 1n,
+      extra: Data.from<Data>(Data.void()),
     };
 
     const tx = await lucid.newTx()
@@ -615,6 +616,7 @@ export class Contract {
         maxFee: recipient.maxFee || null,
       })),
       version: 1n,
+      extra: Data.from<Data>(Data.void()),
     };
 
     const tx = await this.lucid.newTx()

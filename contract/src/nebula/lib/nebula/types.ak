@@ -21,6 +21,7 @@ pub type BiddingDetails {
 pub type RoyaltyInfo {
   recipients: List<RoyaltyRecipient>,
   version: Int,
+  extra: Data,
 }
 
 pub type RoyaltyRecipient {
@@ -38,6 +39,7 @@ pub type Metadata =
 pub type DatumMetadata {
   metadata: Metadata,
   version: Int,
+  extra: Data,
 }
 
 pub type TraitOption {

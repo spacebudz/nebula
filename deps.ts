@@ -15,7 +15,7 @@ export {
   toText,
   toUnit,
   Tx,
-} from "https://deno.land/x/lucid@0.8.8/mod.ts";
+} from "https://deno.land/x/lucid@0.8.9/mod.ts";
 export type {
   Address,
   Assets,

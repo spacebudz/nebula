@@ -316,9 +316,16 @@ royalty_recipient = #6.121([
             ])
 
 royalty_recipients = [ * royalty_recipient ]
-version = 1   ; version is of type int, we start with version 1
 
-royalty_info = #6.121([royalty_recipients, version])
+; version is of type int, we start with version 1
+version = 1  
+
+; Custom user defined plutus data.
+; Setting data is optional, but the field is required
+; and needs to be at least Unit/Void: #6.121([])
+extra = plutus_data
+
+royalty_info = #6.121([royalty_recipients, version, extra])
 ```
 
 ### Collection offer constraints specification
@@ -327,8 +334,8 @@ To take advantage of collection offers with constraints, your NFT collection nee
 ```
 { 
   ...
-  type => bounded_bytes,
-  traits => [ * bounded_bytes ] 
+  type => bounded_bytes, ; UTF-8
+  traits => [ * bounded_bytes ] ; UTF-8
 }
 ```
 Example (JSON):
