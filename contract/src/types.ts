@@ -14,9 +14,9 @@ export type RoyaltyRecipient = {
   /** Variable fee. e.g.: 0.04 (4%) */
   fee: number;
   /** Optionally set a minimum absolute fee. */
-  minFee?: Lovelace;
+  minFee?: Lovelace | null;
   /** Optionally set a maximum absolute fee. */
-  maxFee?: Lovelace;
+  maxFee?: Lovelace | null;
 };
 
 export type Constraints = {

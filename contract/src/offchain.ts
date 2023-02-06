@@ -549,7 +549,7 @@ export class Contract {
   }
 
   /** Return the datum of the UTxO the royalty token is locked in. */
-  async getRoyalty(): Promise<{ utxo: UTxO; royaltyInfo: D.RoyaltyInfo }> {
+  async getRoyaltyInfo(): Promise<{ utxo: UTxO; royaltyInfo: D.RoyaltyInfo }> {
     const utxo = await this.lucid.utxoByUnit(
       this.config.royaltyToken,
     );
@@ -559,6 +559,17 @@ export class Contract {
       utxo,
       royaltyInfo: await this.lucid.datumOf<D.RoyaltyInfo>(utxo, D.RoyaltyInfo),
     };
+  }
+
+  async getRoyalty(): Promise<RoyaltyRecipient[]> {
+    const { royaltyInfo } = await this.getRoyaltyInfo();
+
+    return royaltyInfo.recipients.map((recipient) => ({
+      address: toAddress(recipient.address, this.lucid),
+      fee: 10 / Number(recipient.fee),
+      minFee: recipient.minFee,
+      maxFee: recipient.maxFee,
+    }));
   }
 
   async getDeployedScripts(): Promise<{ trade: UTxO | null }> {
@@ -583,7 +594,7 @@ export class Contract {
   }
 
   /**
-   * Update royalty info like fees and recipients.\
+   * Update royalty info like fees and recipients.
    */
   async updateRoyalty(
     royaltyRecipients: RoyaltyRecipient[],
@@ -1138,7 +1149,7 @@ export class Contract {
   ): Promise<{ tx: Tx; remainingLovelace: Lovelace }> {
     const tx = this.lucid.newTx();
 
-    const { utxo, royaltyInfo } = await this.getRoyalty();
+    const { utxo, royaltyInfo } = await this.getRoyaltyInfo();
     let remainingLovelace = lovelace;
 
     const recipients = royaltyInfo.recipients;
