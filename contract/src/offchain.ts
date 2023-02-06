@@ -15,17 +15,13 @@ import {
   ScriptHash,
   SpendingValidator,
   toUnit,
+  tryToDoubleCborEncodedScript,
   Tx,
   TxHash,
   Unit,
   UTxO,
 } from "../../deps.ts";
-import nebulaScript from "./nebula/assets/nebula/spend/payment_script.json" assert {
-  type: "json",
-};
-import oneShotScript from "./nebula/assets/oneshot/mint/payment_script.json" assert {
-  type: "json",
-};
+import scripts from "./nebula/plutus.json" assert { type: "json" };
 import {
   fromAddress,
   fromAssets,
@@ -87,7 +83,9 @@ export class Contract {
     this.tradeValidator = {
       type: "PlutusV2",
       script: applyParamsToScript<D.TradeParams>(
-        nebulaScript.cborHex,
+        tryToDoubleCborEncodedScript(
+          scripts.validators.find((v) => v.title === "nebula")!.compiledCode,
+        ),
         [
           this.fundProtocol ? protocolKey : null,
           { policyId, assetName: assetName || "" },
@@ -460,7 +458,9 @@ export class Contract {
     const royaltyMintingPolicy: MintingPolicy = {
       type: "PlutusV2",
       script: applyParamsToScript<[D.OutRef]>(
-        oneShotScript.cborHex,
+        tryToDoubleCborEncodedScript(
+          scripts.validators.find((v) => v.title === "oneshot")!.compiledCode,
+        ),
         [
           {
             txHash: { hash: utxo.txHash },
