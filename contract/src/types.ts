@@ -6,11 +6,12 @@ export type ContractConfig = {
   fundProtocol?: boolean;
   owner?: Address;
   deployHash?: TxHash;
+  aggregatorFee?: RoyaltyRecipient[];
 };
 
 export type RoyaltyRecipient = {
   address: Address;
-  /** e.g.: 0.04 (4%) */
+  /** Variable fee. e.g.: 0.04 (4%) */
   fee: number;
   /** Optionally set a minimum absolute fee. */
   minFee?: Lovelace;

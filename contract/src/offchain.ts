@@ -1016,7 +1016,9 @@ export class Contract {
           lovelace,
           paymentDatum,
         )).tx,
-      ).payToAddressWithData(owner, {
+      )
+      .compose(this._payFeeAggregator(lovelace))
+      .payToAddressWithData(owner, {
         inline: paymentDatum,
       }, requestedAssets)
       .mintAssets({ [bidToken]: -1n })
@@ -1110,6 +1112,7 @@ export class Contract {
           });
         })(),
       )
+      .compose(this._payFeeAggregator(requestedLovelace))
       .compose(
         privateListing
           ? this.lucid.newTx().addSigner(
@@ -1169,6 +1172,39 @@ export class Contract {
     remainingLovelace = remainingLovelace < 0n ? 0n : remainingLovelace;
 
     return { tx, remainingLovelace };
+  }
+
+  /**
+   * This fee is optional and can be set by aggregators. Note the fees are not enforced in the contract, but solely added into the transaction.\
+   * Recipient address needs to be a public key or native script address.
+   */
+  private _payFeeAggregator(
+    lovelace: Lovelace,
+  ): Tx | null {
+    if (this.config.aggregatorFee && this.config.aggregatorFee.length > 0) {
+      const tx = this.lucid.newTx();
+
+      this.config.aggregatorFee.forEach((recipient) => {
+        const fee = BigInt(Math.floor(1 / (recipient.fee / 10)));
+        const minFee = recipient.minFee;
+        const maxFee = recipient.maxFee;
+
+        const feeToPay = (lovelace * 10n) / fee;
+        const adjustedFee = minFee && feeToPay < minFee
+          ? minFee
+          : maxFee && feeToPay > maxFee
+          ? maxFee
+          : feeToPay;
+
+        tx.payToAddress(recipient.address, {
+          lovelace: adjustedFee,
+        });
+      });
+
+      return tx;
+    } else {
+      return null;
+    }
   }
 }
 

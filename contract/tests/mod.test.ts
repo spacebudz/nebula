@@ -78,6 +78,7 @@ async function createNFTs() {
             imageHash: "sha256",
           }),
           1n,
+          new Constr(0, []),
         ]),
       ),
       {
@@ -96,6 +97,7 @@ async function createNFTs() {
             imageHash: "sha256",
           }),
           1n,
+          new Constr(0, []),
         ]),
       ),
       {
@@ -114,6 +116,7 @@ async function createNFTs() {
             imageHash: "sha256",
           }),
           1n,
+          new Constr(0, []),
         ]),
       ),
       {
@@ -132,6 +135,7 @@ async function createNFTs() {
             imageHash: "sha256",
           }),
           1n,
+          new Constr(0, []),
         ]),
       ),
       {
@@ -190,6 +194,12 @@ const contract = new Contract(lucid, {
   owner: ACCOUNT_0.address,
   policyId,
   deployHash,
+  aggregatorFee: [{
+    address: (await generateAccount({ lovelace: 0n })).address,
+    minFee: 400000n,
+    fee: 0.016,
+    // maxFee: 1500000n,
+  }],
 });
 
 // ---- SETUP

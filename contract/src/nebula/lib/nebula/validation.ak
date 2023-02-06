@@ -2,8 +2,7 @@ use aiken/bytearray
 use aiken/dict.{Dict}
 use aiken/list
 use aiken/transaction.{
-  DatumHash, InlineDatum, Input, NoDatum, Output, OutputReference, Transaction,
-  TransactionId,
+  InlineDatum, Input, Output, OutputReference, Transaction, TransactionId,
 }
 use aiken/transaction/credential.{PublicKeyCredential}
 use aiken/transaction/value

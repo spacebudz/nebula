@@ -13,7 +13,6 @@ use nebula/types.{PaymentDatum}
 
 pub fn get_own_input(ctx: ScriptContext) -> Input {
   assert Spend(output_reference) = ctx.purpose
-  let tx = ctx.transaction
   assert Some(input) =
     list.find(
       ctx.transaction.inputs,
