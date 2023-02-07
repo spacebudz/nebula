@@ -15,7 +15,6 @@ import {
   ScriptHash,
   SpendingValidator,
   toUnit,
-  tryToDoubleCborEncodedScript,
   Tx,
   TxHash,
   Unit,
@@ -83,9 +82,7 @@ export class Contract {
     this.tradeValidator = {
       type: "PlutusV2",
       script: applyParamsToScript<D.TradeParams>(
-        tryToDoubleCborEncodedScript(
-          scripts.validators.find((v) => v.title === "nebula")!.compiledCode,
-        ),
+        scripts.validators.find((v) => v.title === "nebula")!.compiledCode,
         [
           this.fundProtocol ? protocolKey : null,
           { policyId, assetName: assetName || "" },
@@ -458,9 +455,7 @@ export class Contract {
     const royaltyMintingPolicy: MintingPolicy = {
       type: "PlutusV2",
       script: applyParamsToScript<[D.OutRef]>(
-        tryToDoubleCborEncodedScript(
-          scripts.validators.find((v) => v.title === "oneshot")!.compiledCode,
-        ),
+        scripts.validators.find((v) => v.title === "oneshot")!.compiledCode,
         [
           {
             txHash: { hash: utxo.txHash },
