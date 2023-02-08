@@ -198,7 +198,6 @@ const contract = new Contract(lucid, {
     address: (await generateAccount({ lovelace: 0n })).address,
     minFee: 400000n,
     fee: 0.016,
-    // maxFee: 1500000n,
   }],
 });
 
