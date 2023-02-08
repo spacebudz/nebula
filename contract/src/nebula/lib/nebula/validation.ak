@@ -138,7 +138,7 @@ test paid_fee_1() {
         },
       ],
       version: 1,
-      extra: Void,
+      extra: None,
     }
   let reference_input =
     Input {
@@ -276,7 +276,7 @@ test paid_buyer_2() {
     |> dict.insert(#"74797065", #"446f67")
     |> dict.insert(#"747261697473", [#"417865"])
   }
-  let datum_metadata = DatumMetadata { metadata: m, version: 1, extra: Void }
+  let datum_metadata = DatumMetadata { metadata: m, version: 1, extra: None }
   let reference_input =
     Input {
       output_reference: OutputReference {
