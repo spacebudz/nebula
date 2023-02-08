@@ -1,21 +1,19 @@
-# contract
+# Nebula contract
 
-Write validators in the `validators` folder, and supporting functions in the `lib` folder using `.ak` as a file extension.
+## Installation
 
-For example, as `validators/always_true.ak`
+[rustup](https://rustup.rs/) is required.
 
-```gleam
-pub fn spend(_datum: Data, _redeemer: Data, _context: Data) -> Bool {
-  True
-}
+Update `rustup`:
+
+```sh
+rustup install stable
 ```
 
-Validators are named after their purpose, so one of:
-
-- `script`
-- `mint`
-- `withdraw`
-- `certify`
+Install Aiken:
+```
+cargo install --git https://github.com/aiken-lang/aiken.git --rev 5d0c5d2a5b5826f51ee4ea1a5f4da8e21754e598
+```
 
 ## Building
 
@@ -25,24 +23,8 @@ aiken build
 
 ## Testing
 
-You can write tests in any module using the `test` keyword. For example:
-
-```gleam
-test foo() {
-  1 + 1 == 2
-}
-```
-
-To run all tests, simply do:
-
 ```sh
 aiken check
-```
-
-To run only tests matching the string `foo`, do:
-
-```sh
-aiken check -m foo
 ```
 
 ## Documentation
