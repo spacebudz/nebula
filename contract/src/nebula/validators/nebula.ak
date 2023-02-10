@@ -21,9 +21,9 @@ fn spend(
 
   when action is {
     Sell -> {
-      assert Bid(bidding_details) = datum
+      expect Bid(bidding_details) = datum
       let accepted_lovelace = value.lovelace_of(own_input.output.value)
-      assert Some(_) =
+      expect Some(_) =
         paid_fee(tx, payment_datum, accepted_lovelace, royalty_token)
       paid_protocol(tx, protocol_key) && paid_buyer(
         tx,
@@ -32,9 +32,9 @@ fn spend(
       )
     }
     Buy -> {
-      assert Listing(listing_details) = datum
+      expect Listing(listing_details) = datum
       let accepted_lovelace = listing_details.requested_lovelace
-      assert Some(remaining_lovelace) =
+      expect Some(remaining_lovelace) =
         paid_fee(tx, payment_datum, accepted_lovelace, royalty_token)
       let checked_private_listing = when listing_details.private_listing is {
         Some(owner) -> tx_signed_by_address(tx, owner, own_input.output.value)

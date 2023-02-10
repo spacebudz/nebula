@@ -7,3 +7,9 @@ description = "Aiken contracts for project 'nebula/nebula'"
 user = 'nebula'
 project = 'nebula'
 platform = 'github'
+
+[[dependencies]]
+name = 'aiken-lang/stdlib'
+version = 'main'
+source = 'github'
+commit = '1e82ccd5d30d68615b6c0f3b84947b5e93f23549'

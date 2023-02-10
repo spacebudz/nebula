@@ -6,12 +6,12 @@ fn mint(
   _redeemer: Void,
   ctx: ScriptContext,
 ) -> Bool {
-  when
+  let input =
     list.find(
       ctx.transaction.inputs,
       fn(input) { input.output_reference == output_reference },
     )
-  is {
+  when input is {
     Some(_) -> True
     None -> False
   }

@@ -75,7 +75,7 @@ pub fn paid_fee(
   accepted_lovelace: Int,
   royalty_token: RoyaltyToken,
 ) -> Option<Int> {
-  assert Some(royalty_input) =
+  expect Some(royalty_input) =
     list.find(
       tx.reference_inputs,
       fn(input) {
@@ -86,7 +86,7 @@ pub fn paid_fee(
         ) == 1
       },
     )
-  assert royalty_info: RoyaltyInfo =
+  expect royalty_info: RoyaltyInfo =
     utils.get_data(tx, royalty_input.output.datum)
   checked_fee_recipients(
     tx,
@@ -174,7 +174,7 @@ pub fn paid_buyer(
     SpecificPolicyIdWithConstraints(policy_id, types, traits) -> {
       let requested_value =
         utils.value_paid_to_with_datum(tx, bidding_details.owner, payment_datum)
-      assert Some((sell_policy_id, sell_asset_name, _)) =
+      expect Some((sell_policy_id, sell_asset_name, _)) =
         list.find(
           value.flatten(requested_value),
           fn(asset) {
@@ -182,7 +182,7 @@ pub fn paid_buyer(
             p == policy_id
           },
         )
-      assert Some(metadata_input) =
+      expect Some(metadata_input) =
         list.find(
           tx.reference_inputs,
           fn(input) {
@@ -196,14 +196,14 @@ pub fn paid_buyer(
             ) == 1
           },
         )
-      assert datum_metadata: DatumMetadata =
+      expect datum_metadata: DatumMetadata =
         utils.get_data(tx, metadata_input.output.datum)
-      assert metadata_type: ByteArray = {
-        assert Some(t) = dict.get(datum_metadata.metadata, constants.type_key)
+      expect metadata_type: ByteArray = {
+        expect Some(t) = dict.get(datum_metadata.metadata, constants.type_key)
         t
       }
-      assert metadata_traits: List<ByteArray> = {
-        assert Some(t) = dict.get(datum_metadata.metadata, constants.traits_key)
+      expect metadata_traits: List<ByteArray> = {
+        expect Some(t) = dict.get(datum_metadata.metadata, constants.traits_key)
         t
       }
       let has_type = when types is {

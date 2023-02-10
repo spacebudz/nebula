@@ -12,8 +12,8 @@ use nebula/fixture
 use nebula/types.{PaymentDatum}
 
 pub fn get_own_input(ctx: ScriptContext) -> Input {
-  assert Spend(output_reference) = ctx.purpose
-  assert Some(input) =
+  expect Spend(output_reference) = ctx.purpose
+  expect Some(input) =
     list.find(
       ctx.transaction.inputs,
       fn(input) { input.output_reference == output_reference },
@@ -25,7 +25,7 @@ pub fn get_data(tx: Transaction, datum: Datum) -> Data {
   when datum is {
     NoDatum -> error
     DatumHash(h) -> {
-      assert Some(d) = dict.get(tx.datums, h)
+      expect Some(d) = dict.get(tx.datums, h)
       d
     }
     InlineDatum(d) -> d
@@ -93,7 +93,7 @@ pub fn value_paid_to_with_datum(
   address: Address,
   payment_datum: PaymentDatum,
 ) -> Value {
-  assert [output] =
+  let [output] =
     list.filter(
       tx.outputs,
       fn(output) {
