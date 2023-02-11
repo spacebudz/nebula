@@ -168,13 +168,6 @@ const { txHash, royaltyToken } = await Contract.createRoyalty(
     address: "addr_test1vr0yva2r7l8wjyfcpptewfu6gk88gqsvxzlqkvjuatdpr5st9chpv",
     fee: 0.004,
     maxFee: 1500000n,
-  }, {
-    address: (await generateAccount({ lovelace: 0n })).address,
-    fee: 0.004,
-    maxFee: 1400000n,
-  }, {
-    address: (await generateAccount({ lovelace: 0n })).address,
-    fee: 0.004,
   }],
   ACCOUNT_0.address,
 );
@@ -194,11 +187,6 @@ const contract = new Contract(lucid, {
   owner: ACCOUNT_0.address,
   policyId,
   deployHash,
-  aggregatorFee: [{
-    address: (await generateAccount({ lovelace: 0n })).address,
-    minFee: 400000n,
-    fee: 0.016,
-  }],
 });
 
 // ---- SETUP

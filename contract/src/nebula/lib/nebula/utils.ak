@@ -86,21 +86,24 @@ test tx_signed_by_address_3() {
   )
 }
 
-/// We assert outputs are unique because of datum tagging.
-/// We also assert the datum is inline
+/// We expect outputs to be unique. Each output is tagged with a datum.
+/// We also expect the datum to be inline
 pub fn value_paid_to_with_datum(
   tx: Transaction,
   address: Address,
   payment_datum: PaymentDatum,
 ) -> Value {
-  let [output] =
+  when
     list.filter(
       tx.outputs,
       fn(output) {
         output.address == address && output.datum == InlineDatum(payment_datum)
       },
     )
-  output.value
+  is {
+    [output] -> output.value
+    _ -> error
+  }
 }
 
 test value_paid_to_with_datum_1() {

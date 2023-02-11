@@ -114,9 +114,7 @@ export class Contract {
         this.lucid.newTx(),
       );
 
-    const tx = await this.lucid.newTx()
-      .compose(buyOrders)
-      .complete();
+    const tx = await buyOrders.complete();
 
     const txSigned = await tx.sign().complete();
     return txSigned.submit();
@@ -140,9 +138,7 @@ export class Contract {
         this.lucid.newTx(),
       );
 
-    const tx = await this.lucid.newTx()
-      .compose(sellOrders)
-      .complete();
+    const tx = await sellOrders.complete();
 
     const txSigned = await tx.sign().complete();
     return txSigned.submit();
