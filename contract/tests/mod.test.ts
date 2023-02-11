@@ -184,8 +184,8 @@ await lucid.awaitTx(deployHash);
 
 const contract = new Contract(lucid, {
   royaltyToken,
-  owner: ACCOUNT_0.address,
   policyId,
+  owner: ACCOUNT_0.address,
   deployHash,
 });
 
@@ -332,6 +332,12 @@ Deno.test("Bundle bid", async () => {
   const [bid] = await contract.getBids("Bundle");
   await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
     await contract.sell([{ bidUtxo: bid }]),
+  );
+});
+
+Deno.test("Remove scripts", async () => {
+  await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
+    await contract.removeScripts(),
   );
 });
 

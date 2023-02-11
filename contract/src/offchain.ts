@@ -22,6 +22,7 @@ import {
 } from "../../deps.ts";
 import scripts from "./nebula/plutus.json" assert { type: "json" };
 import {
+  checkVariableFee,
   fromAddress,
   fromAssets,
   sortAsc,
@@ -44,13 +45,13 @@ export class Contract {
   tradeValidator: SpendingValidator;
   tradeHash: ScriptHash;
   tradeAddress: Address;
-  mintPolicy: MintingPolicy;
-  mintPolicyId: PolicyId;
+  bidPolicy: MintingPolicy;
+  bidPolicyId: PolicyId;
   config: ContractConfig;
   fundProtocol: boolean;
 
   /**
-   * **NOTE**: config.royaltyToken and config.fundProtocol are parameters of the marketplace contract.
+   * Note config.royaltyToken and config.fundProtocol are parameters of the marketplace contract.
    * Changing these parameters changes the plutus script and so the script hash!
    */
   constructor(
@@ -95,14 +96,14 @@ export class Contract {
       lucid.utils.scriptHashToCredential(this.tradeHash),
     );
 
-    this.mintPolicy = lucid.utils.nativeScriptFromJson({
+    this.bidPolicy = lucid.utils.nativeScriptFromJson({
       type: "any",
       scripts: [
         { type: "after", slot: 0 },
         { type: "sig", keyHash: this.tradeHash },
       ],
     });
-    this.mintPolicyId = lucid.utils.mintingPolicyToId(this.mintPolicy);
+    this.bidPolicyId = lucid.utils.mintingPolicyToId(this.bidPolicy);
   }
 
   async buy(listingUtxos: UTxO[]): Promise<TxHash> {
@@ -367,7 +368,7 @@ export class Contract {
         .filter((unit) => unit !== "lovelace")
         .every(
           (unit) =>
-            unit.startsWith(this.mintPolicyId) ||
+            unit.startsWith(this.bidPolicyId) ||
             unit.startsWith(this.config.policyId),
         )
     );
@@ -413,7 +414,7 @@ export class Contract {
     return (await this.lucid.utxosAtWithUnit(
       paymentCredentialOf(this.tradeAddress),
       toUnit(
-        this.mintPolicyId,
+        this.bidPolicyId,
         bidAssetName,
       ),
     )).filter((utxo) => {
@@ -421,7 +422,7 @@ export class Contract {
         unit !== "lovelace"
       );
       return units.every((unit) =>
-        unit.startsWith(this.mintPolicyId) ||
+        unit.startsWith(this.bidPolicyId) ||
         unit.startsWith(this.config.policyId)
       ) &&
         (option === "Swap" ? units.length > 1 : units.length === 1);
@@ -476,7 +477,7 @@ export class Contract {
         ) throw new Error("Min fee cannot be greater than max fee!");
         return {
           address: fromAddress(recipient.address),
-          fee: BigInt(Math.floor(1 / (recipient.fee / 10))),
+          fee: checkVariableFee(recipient.fee),
           minFee: recipient.minFee || null,
           maxFee: recipient.maxFee || null,
         };
@@ -517,12 +518,12 @@ export class Contract {
     if (credential.type !== "Key") {
       throw new Error("Owner needs to be a public key address.");
     }
-    const deployScript = this.lucid.utils.nativeScriptFromJson({
+    const ownerScript = this.lucid.utils.nativeScriptFromJson({
       type: "sig",
       keyHash: credential.hash,
     });
 
-    const ownerAddress = this.lucid.utils.validatorToAddress(deployScript);
+    const ownerAddress = this.lucid.utils.validatorToAddress(ownerScript);
 
     const tx = await this.lucid.newTx()
       .payToAddressWithData(ownerAddress, {
@@ -536,6 +537,41 @@ export class Contract {
       "You can now paste the Tx Hash into the Contract config.\n",
     );
 
+    return txSigned.submit();
+  }
+
+  /**
+   *  Remove scripts from UTxOs. Note tx fees for users will increase again.\
+   *  Make sure you are the owner of the UTxOs where the scripts are locked at.
+   */
+  async removeScripts(): Promise<TxHash> {
+    if (!this.config.owner) {
+      throw new Error("No owner specified. Specify an owner in the config.");
+    }
+    const credential = paymentCredentialOf(this.config.owner);
+    if (credential.type !== "Key") {
+      throw new Error("Owner needs to be a public key address.");
+    }
+
+    if (
+      credential.hash !==
+        paymentCredentialOf(await this.lucid.wallet.address()).hash
+    ) throw new Error("You are not the owner.");
+
+    const ownerScript = this.lucid.utils.nativeScriptFromJson({
+      type: "sig",
+      keyHash: credential.hash,
+    });
+
+    const refScripts = await this.getDeployedScripts();
+    if (!refScripts.trade) throw new Error("No script are not deployed.");
+
+    const tx = await this.lucid.newTx()
+      .collectFrom([refScripts.trade])
+      .attachSpendingValidator(ownerScript)
+      .complete();
+
+    const txSigned = await tx.sign().complete();
     return txSigned.submit();
   }
 
@@ -565,11 +601,16 @@ export class Contract {
 
   async getDeployedScripts(): Promise<{ trade: UTxO | null }> {
     if (!this.config.deployHash) return { trade: null };
-    const [trade] = await this.lucid.utxosByOutRef([{
-      txHash: this.config.deployHash,
-      outputIndex: 0,
-    }]);
-    return { trade };
+    // TODO: Bump Lucid
+    try {
+      const [trade] = await this.lucid.utxosByOutRef([{
+        txHash: this.config.deployHash,
+        outputIndex: 0,
+      }]);
+      return { trade };
+    } catch (_) {
+      return { trade: null };
+    }
   }
 
   getContractHashes(): {
@@ -580,7 +621,7 @@ export class Contract {
     return {
       scriptHash: this.tradeHash,
       nftPolicyId: this.config.policyId,
-      bidPolicyId: this.mintPolicyId,
+      bidPolicyId: this.bidPolicyId,
     };
   }
 
@@ -613,7 +654,7 @@ export class Contract {
     const royaltyInfo: D.RoyaltyInfo = {
       recipients: royaltyRecipients.map((recipient) => ({
         address: fromAddress(recipient.address),
-        fee: BigInt(Math.floor(1 / (recipient.fee / 10))),
+        fee: checkVariableFee(recipient.fee),
         minFee: recipient.minFee || null,
         maxFee: recipient.maxFee || null,
       })),
@@ -744,16 +785,16 @@ export class Contract {
 
     return this.lucid.newTx()
       .mintAssets({
-        [toUnit(this.mintPolicyId, bidAssetName)]: 1n,
+        [toUnit(this.bidPolicyId, bidAssetName)]: 1n,
       })
       .payToContract(adjustedTradeAddress, {
         inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
       }, {
         lovelace,
-        [toUnit(this.mintPolicyId, bidAssetName)]: 1n,
+        [toUnit(this.bidPolicyId, bidAssetName)]: 1n,
       })
       .validFrom(this.lucid.utils.slotToUnixTime(1000))
-      .attachMintingPolicy(this.mintPolicy);
+      .attachMintingPolicy(this.bidPolicy);
   }
 
   /** Create a bid on any token within the collection. Optionally add constraints. */
@@ -796,16 +837,16 @@ export class Contract {
 
     return this.lucid.newTx()
       .mintAssets({
-        [toUnit(this.mintPolicyId, fromText("BidOpen"))]: 1n,
+        [toUnit(this.bidPolicyId, fromText("BidOpen"))]: 1n,
       })
       .payToContract(adjustedTradeAddress, {
         inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
       }, {
         lovelace,
-        [toUnit(this.mintPolicyId, fromText("BidOpen"))]: 1n,
+        [toUnit(this.bidPolicyId, fromText("BidOpen"))]: 1n,
       })
       .validFrom(this.lucid.utils.slotToUnixTime(1000))
-      .attachMintingPolicy(this.mintPolicy);
+      .attachMintingPolicy(this.bidPolicy);
   }
 
   /** Swap asset(s) for another asset(s). Ada could also be included on the offering side. */
@@ -891,16 +932,16 @@ export class Contract {
 
     return this.lucid.newTx()
       .mintAssets({
-        [toUnit(this.mintPolicyId, fromText("BidSwap"))]: 1n,
+        [toUnit(this.bidPolicyId, fromText("BidSwap"))]: 1n,
       })
       .payToContract(adjustedTradeAddress, {
         inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
       }, {
         ...offeringAssets,
-        [toUnit(this.mintPolicyId, fromText("BidSwap"))]: 1n,
+        [toUnit(this.bidPolicyId, fromText("BidSwap"))]: 1n,
       })
       .validFrom(this.lucid.utils.slotToUnixTime(1000))
-      .attachMintingPolicy(this.mintPolicy);
+      .attachMintingPolicy(this.bidPolicy);
   }
 
   async _cancelListing(listingUtxo: UTxO): Promise<Tx> {
@@ -950,7 +991,7 @@ export class Contract {
 
     const { lovelace } = bidUtxo.assets;
     const bidToken = Object.keys(bidUtxo.assets).find((unit) =>
-      unit.startsWith(this.mintPolicyId)
+      unit.startsWith(this.bidPolicyId)
     );
     if (!bidToken) throw new Error("No bid token found.");
 
@@ -1035,7 +1076,7 @@ export class Contract {
           ? this.lucid.newTx().readFrom([refScripts.trade])
           : this.lucid.newTx().attachSpendingValidator(this.tradeValidator),
       )
-      .attachMintingPolicy(this.mintPolicy);
+      .attachMintingPolicy(this.bidPolicy);
   }
 
   async _cancelBid(bidUtxo: UTxO): Promise<Tx> {
@@ -1056,7 +1097,7 @@ export class Contract {
     }
 
     const [bidToken] = Object.keys(bidUtxo.assets).filter((unit) =>
-      unit.startsWith(this.mintPolicyId)
+      unit.startsWith(this.bidPolicyId)
     );
 
     const refScripts = await this.getDeployedScripts();
@@ -1074,7 +1115,7 @@ export class Contract {
           ? this.lucid.newTx().readFrom([refScripts.trade])
           : this.lucid.newTx().attachSpendingValidator(this.tradeValidator),
       )
-      .attachMintingPolicy(this.mintPolicy);
+      .attachMintingPolicy(this.bidPolicy);
   }
 
   async _buy(listingUtxo: UTxO): Promise<Tx> {
@@ -1187,7 +1228,7 @@ export class Contract {
       const tx = this.lucid.newTx();
 
       this.config.aggregatorFee.forEach((recipient) => {
-        const fee = BigInt(Math.floor(1 / (recipient.fee / 10)));
+        const fee = checkVariableFee(recipient.fee);
         const minFee = recipient.minFee;
         const maxFee = recipient.maxFee;
 

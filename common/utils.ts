@@ -160,3 +160,8 @@ export function toAssets(value: D.Value): Assets {
   }
   return result;
 }
+
+export function checkVariableFee(fee: number): bigint {
+  if (fee <= 0) throw new Error("Variable fee needs to be greater than 0.");
+  return BigInt(Math.floor(1 / (fee / 10)));
+}
