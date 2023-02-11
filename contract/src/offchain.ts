@@ -601,16 +601,11 @@ export class Contract {
 
   async getDeployedScripts(): Promise<{ trade: UTxO | null }> {
     if (!this.config.deployHash) return { trade: null };
-    // TODO: Bump Lucid
-    try {
-      const [trade] = await this.lucid.utxosByOutRef([{
-        txHash: this.config.deployHash,
-        outputIndex: 0,
-      }]);
-      return { trade };
-    } catch (_) {
-      return { trade: null };
-    }
+    const [trade] = await this.lucid.utxosByOutRef([{
+      txHash: this.config.deployHash,
+      outputIndex: 0,
+    }]);
+    return { trade };
   }
 
   getContractHashes(): {
