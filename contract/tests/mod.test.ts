@@ -298,6 +298,7 @@ Deno.test("Swap with constraints", async () => {
   await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
     await lucid.newTx().payToAddress(ACCOUNT_0.address, {
       [contract.config.policyId + idToBud(25)]: 1n,
+      [contract.config.policyId + idToBud(32)]: 1n,
     }).complete().then((tx) => tx.sign().complete()).then((tx) => tx.submit()),
   );
 });
@@ -306,11 +307,19 @@ Deno.test("Combine endpoints", async () => {
   await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
     await contract.list([idToBud(25)], 800000000n),
   );
+  await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
+    await contract.list([idToBud(0)], 800000000n),
+  );
   await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
     await contract.bid([idToBud(25)], 500000000n),
   );
+  await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
+    await contract.list([idToBud(32)], 800000000n),
+  );
   const [bid] = await contract.getBids({ assetName: idToBud(25) });
-  const [listing] = await contract.getListings(idToBud(25));
+  const [listing] = await contract.getListings(idToBud(0));
+  const [listing1] = await contract.getListings(idToBud(25));
+  const [listing2] = await contract.getListings(idToBud(32));
   const doMultiple = await lucid
     .selectWalletFromSeed(ACCOUNT_1.seedPhrase)
     .newTx()
@@ -319,6 +328,8 @@ Deno.test("Combine endpoints", async () => {
     .compose(await contract._bid([idToBud(237)], 20000000n))
     .compose(await contract._cancelBid(bid))
     .compose(await contract._buy(listing))
+    .compose(await contract._buy(listing1))
+    .compose(await contract._buy(listing2))
     .compose(await contract._bidOpen(200000000n, { types: ["Ape"] }))
     .complete();
   const signedTx = await doMultiple.sign().complete();

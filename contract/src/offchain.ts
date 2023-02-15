@@ -121,7 +121,12 @@ export class Contract {
         this.lucid.newTx(),
       );
 
-    const tx = await buyOrders.complete();
+    const tx = await buyOrders
+      .compose(
+        this.fundProtocol
+          ? this.lucid.newTx().payToAddress(PROTOCOL_FUND_ADDRESS, {})
+          : null,
+      ).complete();
 
     const txSigned = await tx.sign().complete();
     return txSigned.submit();
@@ -145,7 +150,12 @@ export class Contract {
         this.lucid.newTx(),
       );
 
-    const tx = await sellOrders.complete();
+    const tx = await sellOrders
+      .compose(
+        this.fundProtocol
+          ? this.lucid.newTx().payToAddress(PROTOCOL_FUND_ADDRESS, {})
+          : null,
+      ).complete();
 
     const txSigned = await tx.sign().complete();
     return txSigned.submit();
@@ -1066,11 +1076,6 @@ export class Contract {
         inline: paymentDatum,
       }, requestedAssets)
       .mintAssets({ [bidToken]: -1n })
-      .compose(
-        this.fundProtocol
-          ? this.lucid.newTx().payToAddress(PROTOCOL_FUND_ADDRESS, {})
-          : null,
-      )
       .validFrom(this.lucid.utils.slotToUnixTime(1000))
       .compose(
         refScripts.trade
@@ -1162,11 +1167,6 @@ export class Contract {
           ? this.lucid.newTx().addSigner(
             toAddress(privateListing!, this.lucid),
           )
-          : null,
-      )
-      .compose(
-        this.fundProtocol
-          ? this.lucid.newTx().payToAddress(PROTOCOL_FUND_ADDRESS, {})
           : null,
       )
       .compose(
