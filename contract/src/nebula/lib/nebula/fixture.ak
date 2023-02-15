@@ -3,14 +3,15 @@
 use aiken/dict
 use aiken/interval.{Interval, IntervalBound, PositiveInfinity}
 use aiken/transaction.{Input, Output, Transaction, TransactionId}
-use aiken/transaction/credential.{Address,
-  PublicKeyCredential, ScriptCredential}
+use aiken/transaction/credential.{
+  Address, ScriptCredential, VerificationKeyCredential,
+}
 use aiken/transaction/value
 use nebula/constants
 
 pub fn keyhash_address(keyhash: ByteArray) {
   Address {
-    payment_credential: PublicKeyCredential(keyhash),
+    payment_credential: VerificationKeyCredential(keyhash),
     stake_credential: None,
   }
 }

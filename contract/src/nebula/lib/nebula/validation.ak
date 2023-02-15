@@ -4,7 +4,7 @@ use aiken/list
 use aiken/transaction.{
   InlineDatum, Input, Output, OutputReference, Transaction, TransactionId,
 }
-use aiken/transaction/credential.{PublicKeyCredential}
+use aiken/transaction/credential.{VerificationKeyCredential}
 use aiken/transaction/value
 use nebula/constants
 use nebula/fixture
@@ -60,7 +60,7 @@ pub fn paid_protocol(
         tx.outputs,
         fn(output) {
           when output.address.payment_credential is {
-            PublicKeyCredential(key1) -> key == key1
+            VerificationKeyCredential(key1) -> key == key1
             _ -> False
           }
         },
@@ -273,8 +273,8 @@ test paid_buyer_2() {
   let m = {
     let m: Dict<ByteArray, Data> = dict.new()
     m
-    |> dict.insert(#"74797065", #"446f67")
-    |> dict.insert(#"747261697473", [#"417865"])
+    |> dict.insert(#"74797065", #"446f67", bytearray.compare)
+    |> dict.insert(#"747261697473", [#"417865"], bytearray.compare)
   }
   let datum_metadata = DatumMetadata { metadata: m, version: 1, extra: None }
   let reference_input =

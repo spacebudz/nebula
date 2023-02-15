@@ -4,8 +4,9 @@ use aiken/transaction.{
   Datum, DatumHash, InlineDatum, Input, NoDatum, Output, OutputReference,
   ScriptContext, Spend, Transaction, TransactionId,
 }
-use aiken/transaction/credential.{Address,
-  PublicKeyCredential, ScriptCredential}
+use aiken/transaction/credential.{
+  Address, ScriptCredential, VerificationKeyCredential,
+}
 use aiken/transaction/value.{Value}
 use nebula/constants
 use nebula/fixture
@@ -44,7 +45,8 @@ pub fn tx_signed_by_address(
   value: Value,
 ) -> Bool {
   when owner.payment_credential is {
-    PublicKeyCredential(keyhash) -> list.has(tx.extra_signatories, keyhash)
+    VerificationKeyCredential(keyhash) ->
+      list.has(tx.extra_signatories, keyhash)
     ScriptCredential(_) ->
       when
         list.find(

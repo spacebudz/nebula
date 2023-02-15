@@ -40,6 +40,12 @@ import {
 } from "./types.ts";
 import { budConfig } from "./config.ts";
 
+// Both scripts are PlutusV2
+const oneshotScript =
+  scripts.validators.find((v) => v.title === "oneshot")!.compiledCode;
+const nebulaScript =
+  scripts.validators.find((v) => v.title === "nebula")!.compiledCode;
+
 export class Contract {
   lucid: Lucid;
   tradeValidator: SpendingValidator;
@@ -83,7 +89,7 @@ export class Contract {
     this.tradeValidator = {
       type: "PlutusV2",
       script: applyParamsToScript<D.TradeParams>(
-        scripts.validators.find((v) => v.title === "nebula")!.compiledCode,
+        nebulaScript,
         [
           this.fundProtocol ? protocolKey : null,
           { policyId, assetName: assetName || "" },
@@ -452,7 +458,7 @@ export class Contract {
     const royaltyMintingPolicy: MintingPolicy = {
       type: "PlutusV2",
       script: applyParamsToScript<[D.OutRef]>(
-        scripts.validators.find((v) => v.title === "oneshot")!.compiledCode,
+        oneshotScript,
         [
           {
             txHash: { hash: utxo.txHash },
