@@ -15,7 +15,7 @@ export {
   toText,
   toUnit,
   Tx,
-} from "https://deno.land/x/lucid@0.9.2/mod.ts";
+} from "https://raw.githubusercontent.com/spacebudz/lucid/main/mod.ts"; // TODO
 export type {
   Address,
   Assets,
@@ -33,7 +33,7 @@ export type {
   TxHash,
   Unit,
   UTxO,
-} from "https://deno.land/x/lucid@0.9.2/mod.ts";
+} from "https://raw.githubusercontent.com/spacebudz/lucid/main/mod.ts"; // TODO
 
 export {
   createClient,

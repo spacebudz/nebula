@@ -1,8 +1,18 @@
 import { Data } from "../deps.ts";
 
+const PolicyId = Data.Bytes({ minLength: 28, maxLength: 28 });
+
 export const Credential = Data.Enum([
-  Data.Object({ PublicKeyCredential: Data.Tuple([Data.String]) }),
-  Data.Object({ ScriptCredential: Data.Tuple([Data.String]) }),
+  Data.Object({
+    PublicKeyCredential: Data.Tuple([
+      Data.Bytes({ minLength: 28, maxLength: 28 }),
+    ]),
+  }),
+  Data.Object({
+    ScriptCredential: Data.Tuple([
+      Data.Bytes({ minLength: 28, maxLength: 28 }),
+    ]),
+  }),
 ]);
 export type Credential = Data.Static<typeof Credential>;
 
@@ -12,21 +22,24 @@ export const Address = Data.Object({
     Data.Object({ Inline: Data.Tuple([Credential]) }),
     Data.Object({
       Pointer: Data.Tuple([Data.Object({
-        slotNumber: Data.BigInt,
-        transactionIndex: Data.BigInt,
-        certificateIndex: Data.BigInt,
+        slotNumber: Data.Integer(),
+        transactionIndex: Data.Integer(),
+        certificateIndex: Data.Integer(),
       })]),
     }),
   ])),
 });
 export type Address = Data.Static<typeof Address>;
 
-export const Value = Data.Map(Data.String, Data.Map(Data.String, Data.BigInt));
+export const Value = Data.Map(
+  PolicyId,
+  Data.Map(Data.Bytes(), Data.Integer()),
+);
 export type Value = Data.Static<typeof Value>;
 
 export const TraitOption = Data.Enum([
-  Data.Object({ Included: Data.Tuple([Data.String]) }),
-  Data.Object({ Excluded: Data.Tuple([Data.String]) }),
+  Data.Object({ Included: Data.Tuple([Data.Bytes()]) }),
+  Data.Object({ Excluded: Data.Tuple([Data.Bytes()]) }),
 ]);
 export type TraitOption = Data.Static<typeof TraitOption>;
 
@@ -34,8 +47,8 @@ export const BidOption = Data.Enum([
   Data.Object({ SpecificValue: Data.Tuple([Value]) }),
   Data.Object({
     SpecificSymbolWithConstraints: Data.Tuple([
-      Data.String,
-      Data.Array(Data.String),
+      PolicyId,
+      Data.Array(Data.Bytes()),
       Data.Array(TraitOption),
     ]),
   }),
@@ -43,14 +56,14 @@ export const BidOption = Data.Enum([
 export type BidOption = Data.Static<typeof BidOption>;
 
 export const OutRef = Data.Object({
-  txHash: Data.Object({ hash: Data.String }),
-  outputIndex: Data.BigInt,
+  txHash: Data.Object({ hash: Data.Bytes({ minLength: 32, maxLength: 32 }) }),
+  outputIndex: Data.Integer(),
 });
 export type OutRef = Data.Static<typeof OutRef>;
 
 export const ListingDetails = Data.Object({
   owner: Address,
-  requestedLovelace: Data.BigInt,
+  requestedLovelace: Data.Integer(),
   privateListing: Data.Nullable(Address),
 });
 export type ListingDetails = Data.Static<typeof ListingDetails>;
@@ -63,22 +76,22 @@ export type BiddingDetails = Data.Static<typeof BiddingDetails>;
 
 export const RoyaltyRecipient = Data.Object({
   address: Address,
-  fee: Data.BigInt,
-  minFee: Data.Nullable(Data.BigInt),
-  maxFee: Data.Nullable(Data.BigInt),
+  fee: Data.Integer({ minimum: 1 }),
+  minFee: Data.Nullable(Data.Integer()),
+  maxFee: Data.Nullable(Data.Integer()),
 });
 export type RoyaltyRecipient = Data.Static<typeof RoyaltyRecipient>;
 
 export const RoyaltyInfo = Data.Object({
   recipients: Data.Array(RoyaltyRecipient),
-  version: Data.BigInt,
-  extra: Data.Any,
+  version: Data.Integer({ minimum: 1 }),
+  extra: Data.Any(),
 });
 export type RoyaltyInfo = Data.Static<typeof RoyaltyInfo>;
 
 export const RoyaltyToken = Data.Object({
-  policyId: Data.String,
-  assetName: Data.String,
+  policyId: PolicyId,
+  assetName: Data.Bytes(),
 });
 export type RoyaltyToken = Data.Static<typeof RoyaltyToken>;
 
@@ -101,7 +114,7 @@ export const TradeDatum = Data.Enum([
 export type TradeDatum = Data.Static<typeof TradeDatum>;
 
 export const TradeParams = Data.Tuple([
-  Data.Nullable(Data.String),
+  Data.Nullable(Data.Bytes()),
   RoyaltyToken,
 ]);
 export type TradeParams = Data.Static<typeof TradeParams>;
