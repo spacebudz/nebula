@@ -1,40 +1,4 @@
-export {
-  applyParamsToScript,
-  C,
-  Constr,
-  Data,
-  Emulator,
-  fromHex,
-  fromText,
-  fromUnit,
-  generateSeedPhrase,
-  getAddressDetails,
-  Lucid,
-  paymentCredentialOf,
-  toLabel,
-  toText,
-  toUnit,
-  Tx,
-} from "https://raw.githubusercontent.com/spacebudz/lucid/main/mod.ts"; // TODO
-export type {
-  Address,
-  Assets,
-  Core,
-  Datum,
-  Json,
-  Lovelace,
-  MintingPolicy,
-  OutRef,
-  PolicyId,
-  Redeemer,
-  ScriptHash,
-  Slot,
-  SpendingValidator,
-  TxHash,
-  Unit,
-  UTxO,
-} from "https://raw.githubusercontent.com/spacebudz/lucid/main/mod.ts"; // TODO
-
+export * from "https://raw.githubusercontent.com/spacebudz/lucid/main/mod.ts"; // TODO: Use specific Lucid version
 export {
   createClient,
   toShelleyCompatibleBlock,

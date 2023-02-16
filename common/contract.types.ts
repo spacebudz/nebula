@@ -76,7 +76,7 @@ export type BiddingDetails = Data.Static<typeof BiddingDetails>;
 
 export const RoyaltyRecipient = Data.Object({
   address: Address,
-  fee: Data.Integer({ minimum: 1 }),
+  fee: Data.Integer({ minimum: 1, maximum: 1 }),
   minFee: Data.Nullable(Data.Integer()),
   maxFee: Data.Nullable(Data.Integer()),
 });
