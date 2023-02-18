@@ -42,9 +42,9 @@ import { budConfig } from "./config.ts";
 
 // Both scripts are PlutusV2
 const oneshotScript =
-  scripts.validators.find((v) => v.title === "oneshot")!.compiledCode;
+  scripts.validators.find((v) => v.title === "oneshot.mint")!.compiledCode;
 const nebulaScript =
-  scripts.validators.find((v) => v.title === "nebula")!.compiledCode;
+  scripts.validators.find((v) => v.title === "nebula.spend")!.compiledCode;
 
 export class Contract {
   lucid: Lucid;
