@@ -1,4 +1,4 @@
-export * from "https://raw.githubusercontent.com/spacebudz/lucid/main/mod.ts"; // TODO: Use specific Lucid version
+export * from "https://deno.land/x/lucid@0.9.3/mod.ts";
 export {
   createClient,
   toShelleyCompatibleBlock,

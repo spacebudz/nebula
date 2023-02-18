@@ -1,5 +1,4 @@
 *.log
 .DS_Store
 dist
-deno.lock
 test.ts
