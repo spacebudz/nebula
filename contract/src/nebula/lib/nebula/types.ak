@@ -49,7 +49,11 @@ pub type TraitOption {
 
 pub type BidOption {
   SpecificValue(Value)
-  SpecificPolicyIdWithConstraints(PolicyId, List<ByteArray>, List<TraitOption>)
+  SpecificPolicyIdWithConstraints(
+    PolicyId,
+    List<ByteArray>,
+    Option<List<TraitOption>>,
+  )
 }
 
 pub type RoyaltyToken {

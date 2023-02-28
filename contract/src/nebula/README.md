@@ -12,7 +12,7 @@ rustup install stable
 
 Install Aiken:
 ```
-cargo install --git https://github.com/aiken-lang/aiken.git --rev 95fce14b7583fbcc34f680504b82aa1e7fbec484
+cargo install --git https://github.com/aiken-lang/aiken.git --rev a9be624cece085430b3f3ec86d23a0b119f57d0f
 ```
 
 ## Building

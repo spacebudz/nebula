@@ -840,7 +840,7 @@ export class Contract {
                   ? { Excluded: [fromText(trait)] }
                   : { Included: [fromText(trait)] }
               )
-              : [],
+              : null,
           ],
         },
       }],
@@ -928,7 +928,7 @@ export class Contract {
                     ? { Excluded: [fromText(trait)] }
                     : { Included: [fromText(trait)] }
                 )
-                : [],
+                : null,
             ],
           },
       }],
@@ -1036,7 +1036,7 @@ export class Contract {
           requestedAssets: {
             [toUnit(policyId, assetName)]: 1n,
           },
-          refNFT: types.length > 0 || traits.length > 0 ? refNFT : null,
+          refNFT: types.length > 0 || traits ? refNFT : null,
         };
       }
       throw new Error("No variant matched.");

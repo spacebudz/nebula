@@ -9,7 +9,7 @@
 ## Requirements
 
 - [Deno](https://deno.land/) $\ge$ Version 1.28.3
-- [Aiken](https://github.com/aiken-lang/aiken.git) (`cargo install --git https://github.com/aiken-lang/aiken.git --rev 95fce14b7583fbcc34f680504b82aa1e7fbec484`)
+- [Aiken](https://github.com/aiken-lang/aiken.git) (`cargo install --git https://github.com/aiken-lang/aiken.git --rev a9be624cece085430b3f3ec86d23a0b119f57d0f`)
 
 ## Quick start
 
@@ -37,7 +37,7 @@ const owner = "addr...";
 const txHash = await Contract.createRoyalty(
   lucid,
   [{
-    recipient:
+    address:
       "addr...",
     fee: 0.016, // 1.6%
   }], 
@@ -69,7 +69,7 @@ const contract = new Contract(lucid, {
   royaltyToken: "<royalty_token>",
   owner, // Make sure you use the same owner here as the one in Contract.createRoyalty(..)!
   policyId: "<policy_id_of_your_nft_project>",
-  deployTxHash: "<deploy_tx_hash>",
+  deployHash: "<deploy_hash>",
 });
 ```
 

@@ -49,7 +49,7 @@ export const BidOption = Data.Enum([
     SpecificSymbolWithConstraints: Data.Tuple([
       PolicyId,
       Data.Array(Data.Bytes()),
-      Data.Array(TraitOption),
+      Data.Nullable(Data.Array(TraitOption)),
     ]),
   }),
 ]);
