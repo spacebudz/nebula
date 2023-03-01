@@ -178,7 +178,7 @@ pub fn paid_buyer(
     SpecificPolicyIdWithConstraints(policy_id, [], None) -> {
       let requested_value =
         utils.value_paid_to_with_datum(tx, bidding_details.owner, payment_datum)
-      expect Some((sell_policy_id, _, _)) =
+      expect Some((sell_policy_id, sell_asset_name, _)) =
         list.find(
           value.flatten(requested_value),
           fn(asset) {
@@ -186,7 +186,12 @@ pub fn paid_buyer(
             p == policy_id
           },
         )
-      policy_id == sell_policy_id
+      let used_label = bytearray.take(sell_asset_name, constants.label_length)
+      // A soft restriction on asset names. Reference, Royalty and Ip token are not allowed to be used here.
+      // Other token types can technically be used, but should NOT be under the same policy id as the collection itself!
+      let is_valid_name =
+        used_label != constants.label_100 && used_label != constants.label_500 && used_label != constants.label_600
+      policy_id == sell_policy_id && is_valid_name
     }
     SpecificPolicyIdWithConstraints(policy_id, types, traits) -> {
       let requested_value =
@@ -243,8 +248,11 @@ pub fn paid_buyer(
             },
           )
       }
+      // A soft restriction on asset names. We only need to check if the Reference token itself is not used.
+      let used_label = bytearray.take(sell_asset_name, constants.label_length)
+      let is_valid_name = used_label != constants.label_100
       let used_correct_policy_id = policy_id == sell_policy_id
-      has_type && has_traits && used_correct_policy_id
+      has_type && has_traits && used_correct_policy_id && is_valid_name
     }
   }
 }

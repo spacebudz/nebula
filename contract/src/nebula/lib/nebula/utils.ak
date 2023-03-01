@@ -111,11 +111,11 @@ pub fn value_paid_to_with_datum(
 test value_paid_to_with_datum_1() {
   let payment_datum =
     PaymentDatum {
-    output_reference: OutputReference {
-      transaction_id: TransactionId { hash: #"00" },
-      output_index: 0,
-    }}
-    
+      output_reference: OutputReference {
+        transaction_id: TransactionId { hash: #"00" },
+        output_index: 0,
+      },
+    }
   let output =
     Output {
       address: fixture.keyhash_address(#"010203"),
@@ -133,11 +133,11 @@ test value_paid_to_with_datum_1() {
 test value_paid_to_with_datum_2() {
   let payment_datum =
     PaymentDatum {
-    output_reference: OutputReference {
-      transaction_id: TransactionId { hash: #"00" },
-      output_index: 0,
-    }}
-    
+      output_reference: OutputReference {
+        transaction_id: TransactionId { hash: #"00" },
+        output_index: 0,
+      },
+    }
   let output =
     Output {
       address: fixture.keyhash_address(#"010203"),

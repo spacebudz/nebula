@@ -3,6 +3,10 @@ pub const label_length = 4
 
 pub const label_100 = #"000643b0"
 
+pub const label_500 = #"001f4d70"
+
+pub const label_600 = #"00258a50"
+
 // '(2)ScriptOwner' in UTF-8
 // Has 2 as label (private use)
 pub const script_owner = #"000020e05363726970744f776e6572"
