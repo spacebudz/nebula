@@ -9,7 +9,7 @@
 ## Requirements
 
 - [Deno](https://deno.land/) $\ge$ Version 1.28.3
-- [Aiken](https://github.com/aiken-lang/aiken.git) (`cargo install --git https://github.com/aiken-lang/aiken.git --rev a9be624cece085430b3f3ec86d23a0b119f57d0f`)
+- [Aiken](https://github.com/aiken-lang/aiken.git) (`cargo install --git https://github.com/aiken-lang/aiken.git --rev f230af436c82272d3a896690b060a64c49f1b84b`)
 
 ## Quick start
 

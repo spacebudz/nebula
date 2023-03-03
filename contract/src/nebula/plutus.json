@@ -12,48 +12,52 @@
       "redeemer": {
         "title": "Unit",
         "description": "The nullary constructor.",
-        "anyOf": [
-          {
-            "dataType": "constructor",
-            "index": 0,
-            "fields": []
-          }
-        ]
+        "schema": {
+          "anyOf": [
+            {
+              "dataType": "constructor",
+              "index": 0,
+              "fields": []
+            }
+          ]
+        }
       },
       "parameters": [
         {
           "title": "OutputReference",
           "description": "An `OutputReference` is a unique reference to an output on-chain. The `output_index`\n corresponds to the position in the output list of the transaction (identified by its id)\n that produced that output",
-          "anyOf": [
-            {
-              "title": "OutputReference",
-              "dataType": "constructor",
-              "index": 0,
-              "fields": [
-                {
-                  "title": "transaction_id",
-                  "description": "A unique transaction identifier, as the hash of a transaction body. Note that the transaction id\n isn't a direct hash of the `Transaction` as visible on-chain. Rather, they correspond to hash\n digests of transaction body as they are serialized on the network.",
-                  "anyOf": [
-                    {
-                      "title": "TransactionId",
-                      "dataType": "constructor",
-                      "index": 0,
-                      "fields": [
-                        {
-                          "title": "hash",
-                          "dataType": "bytes"
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "title": "output_index",
-                  "dataType": "integer"
-                }
-              ]
-            }
-          ]
+          "schema": {
+            "anyOf": [
+              {
+                "title": "OutputReference",
+                "dataType": "constructor",
+                "index": 0,
+                "fields": [
+                  {
+                    "title": "transaction_id",
+                    "description": "A unique transaction identifier, as the hash of a transaction body. Note that the transaction id\n isn't a direct hash of the `Transaction` as visible on-chain. Rather, they correspond to hash\n digests of transaction body as they are serialized on the network.",
+                    "anyOf": [
+                      {
+                        "title": "TransactionId",
+                        "dataType": "constructor",
+                        "index": 0,
+                        "fields": [
+                          {
+                            "title": "hash",
+                            "dataType": "bytes"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "title": "output_index",
+                    "dataType": "integer"
+                  }
+                ]
+              }
+            ]
+          }
         }
       ],
       "compiledCode": "58e301000032323232323232323232222533300632323232533300a3370e0029000099251300400214a060166ea8004c8c8cc004dd6198019802198019802002a40009000119baf33004300500148000020c0040048894ccc03c0084cdd2a400497ae013232533300d300300213374a90001980900125eb804ccc01401400400cc04c00cc04400888c8ccc0040052000003222333300c3370e008004024466600800866e0000d200230140010012300a37540022930b180080091129998040010a4c26600a600260140046660060066016004002ae695cdaab9d5573caae7d5d02ba157441",
@@ -63,470 +67,166 @@
       "title": "nebula.spend",
       "datum": {
         "title": "TradeDatum",
-        "anyOf": [
-          {
-            "title": "Listing",
-            "dataType": "constructor",
-            "index": 0,
-            "fields": [
-              {
-                "title": "ListingDetails",
-                "anyOf": [
-                  {
-                    "title": "ListingDetails",
-                    "dataType": "constructor",
-                    "index": 0,
-                    "fields": [
-                      {
-                        "title": "owner",
-                        "description": "A Cardano `Address` typically holding one or two credential references.\n\n Note that legacy bootstrap addresses (a.k.a. 'Byron addresses') are\n completely excluded from Plutus contexts. Thus, from an on-chain\n perspective only exists addresses of type 00, 01, ..., 07 as detailed\n in [CIP-0019 :: Shelley Addresses](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0019/#shelley-addresses).",
-                        "anyOf": [
-                          {
-                            "title": "Address",
-                            "dataType": "constructor",
-                            "index": 0,
-                            "fields": [
-                              {
-                                "title": "payment_credential",
-                                "description": "A general structure for representing an on-chain `Credential`.\n\n Credentials are always one of two kinds: a direct public/private key\n pair, or a script (native or Plutus).",
-                                "anyOf": [
-                                  {
-                                    "title": "VerificationKeyCredential",
-                                    "dataType": "constructor",
-                                    "index": 0,
-                                    "fields": [
-                                      {
-                                        "dataType": "bytes"
-                                      }
-                                    ]
-                                  },
-                                  {
-                                    "title": "ScriptCredential",
-                                    "dataType": "constructor",
-                                    "index": 1,
-                                    "fields": [
-                                      {
-                                        "dataType": "bytes"
-                                      }
-                                    ]
-                                  }
-                                ]
-                              },
-                              {
-                                "title": "stake_credential",
-                                "anyOf": [
-                                  {
-                                    "title": "Some",
-                                    "description": "An optional value.",
-                                    "dataType": "constructor",
-                                    "index": 0,
-                                    "fields": [
-                                      {
-                                        "title": "Referenced",
-                                        "description": "Represent a type of object that can be represented either inline (by hash)\n or via a reference (i.e. a pointer to an on-chain location).\n\n This is mainly use for capturing pointers to a stake credential\n registration certificate in the case of so-called pointer addresses.",
-                                        "anyOf": [
-                                          {
-                                            "title": "Inline",
-                                            "dataType": "constructor",
-                                            "index": 0,
-                                            "fields": [
-                                              {
-                                                "title": "Credential",
-                                                "description": "A general structure for representing an on-chain `Credential`.\n\n Credentials are always one of two kinds: a direct public/private key\n pair, or a script (native or Plutus).",
-                                                "anyOf": [
-                                                  {
-                                                    "title": "VerificationKeyCredential",
-                                                    "dataType": "constructor",
-                                                    "index": 0,
-                                                    "fields": [
-                                                      {
-                                                        "dataType": "bytes"
-                                                      }
-                                                    ]
-                                                  },
-                                                  {
-                                                    "title": "ScriptCredential",
-                                                    "dataType": "constructor",
-                                                    "index": 1,
-                                                    "fields": [
-                                                      {
-                                                        "dataType": "bytes"
-                                                      }
-                                                    ]
-                                                  }
-                                                ]
-                                              }
-                                            ]
-                                          },
-                                          {
-                                            "title": "Pointer",
-                                            "dataType": "constructor",
-                                            "index": 1,
-                                            "fields": [
-                                              {
-                                                "title": "slot_number",
-                                                "dataType": "integer"
-                                              },
-                                              {
-                                                "title": "transaction_index",
-                                                "dataType": "integer"
-                                              },
-                                              {
-                                                "title": "certificate_index",
-                                                "dataType": "integer"
-                                              }
-                                            ]
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  },
-                                  {
-                                    "title": "None",
-                                    "description": "Nothing.",
-                                    "dataType": "constructor",
-                                    "index": 1,
-                                    "fields": []
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "title": "requested_lovelace",
-                        "dataType": "integer"
-                      },
-                      {
-                        "title": "private_listing",
-                        "anyOf": [
-                          {
-                            "title": "Some",
-                            "description": "An optional value.",
-                            "dataType": "constructor",
-                            "index": 0,
-                            "fields": [
-                              {
-                                "title": "Address",
-                                "description": "A Cardano `Address` typically holding one or two credential references.\n\n Note that legacy bootstrap addresses (a.k.a. 'Byron addresses') are\n completely excluded from Plutus contexts. Thus, from an on-chain\n perspective only exists addresses of type 00, 01, ..., 07 as detailed\n in [CIP-0019 :: Shelley Addresses](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0019/#shelley-addresses).",
-                                "anyOf": [
-                                  {
-                                    "title": "Address",
-                                    "dataType": "constructor",
-                                    "index": 0,
-                                    "fields": [
-                                      {
-                                        "title": "payment_credential",
-                                        "description": "A general structure for representing an on-chain `Credential`.\n\n Credentials are always one of two kinds: a direct public/private key\n pair, or a script (native or Plutus).",
-                                        "anyOf": [
-                                          {
-                                            "title": "VerificationKeyCredential",
-                                            "dataType": "constructor",
-                                            "index": 0,
-                                            "fields": [
-                                              {
-                                                "dataType": "bytes"
-                                              }
-                                            ]
-                                          },
-                                          {
-                                            "title": "ScriptCredential",
-                                            "dataType": "constructor",
-                                            "index": 1,
-                                            "fields": [
-                                              {
-                                                "dataType": "bytes"
-                                              }
-                                            ]
-                                          }
-                                        ]
-                                      },
-                                      {
-                                        "title": "stake_credential",
-                                        "anyOf": [
-                                          {
-                                            "title": "Some",
-                                            "description": "An optional value.",
-                                            "dataType": "constructor",
-                                            "index": 0,
-                                            "fields": [
-                                              {
-                                                "title": "Referenced",
-                                                "description": "Represent a type of object that can be represented either inline (by hash)\n or via a reference (i.e. a pointer to an on-chain location).\n\n This is mainly use for capturing pointers to a stake credential\n registration certificate in the case of so-called pointer addresses.",
-                                                "anyOf": [
-                                                  {
-                                                    "title": "Inline",
-                                                    "dataType": "constructor",
-                                                    "index": 0,
-                                                    "fields": [
-                                                      {
-                                                        "title": "Credential",
-                                                        "description": "A general structure for representing an on-chain `Credential`.\n\n Credentials are always one of two kinds: a direct public/private key\n pair, or a script (native or Plutus).",
-                                                        "anyOf": [
-                                                          {
-                                                            "title": "VerificationKeyCredential",
-                                                            "dataType": "constructor",
-                                                            "index": 0,
-                                                            "fields": [
-                                                              {
-                                                                "dataType": "bytes"
-                                                              }
-                                                            ]
-                                                          },
-                                                          {
-                                                            "title": "ScriptCredential",
-                                                            "dataType": "constructor",
-                                                            "index": 1,
-                                                            "fields": [
-                                                              {
-                                                                "dataType": "bytes"
-                                                              }
-                                                            ]
-                                                          }
-                                                        ]
-                                                      }
-                                                    ]
-                                                  },
-                                                  {
-                                                    "title": "Pointer",
-                                                    "dataType": "constructor",
-                                                    "index": 1,
-                                                    "fields": [
-                                                      {
-                                                        "title": "slot_number",
-                                                        "dataType": "integer"
-                                                      },
-                                                      {
-                                                        "title": "transaction_index",
-                                                        "dataType": "integer"
-                                                      },
-                                                      {
-                                                        "title": "certificate_index",
-                                                        "dataType": "integer"
-                                                      }
-                                                    ]
-                                                  }
-                                                ]
-                                              }
-                                            ]
-                                          },
-                                          {
-                                            "title": "None",
-                                            "description": "Nothing.",
-                                            "dataType": "constructor",
-                                            "index": 1,
-                                            "fields": []
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            ]
-                          },
-                          {
-                            "title": "None",
-                            "description": "Nothing.",
-                            "dataType": "constructor",
-                            "index": 1,
-                            "fields": []
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "title": "Bid",
-            "dataType": "constructor",
-            "index": 1,
-            "fields": [
-              {
-                "title": "BiddingDetails",
-                "anyOf": [
-                  {
-                    "title": "BiddingDetails",
-                    "dataType": "constructor",
-                    "index": 0,
-                    "fields": [
-                      {
-                        "title": "owner",
-                        "description": "A Cardano `Address` typically holding one or two credential references.\n\n Note that legacy bootstrap addresses (a.k.a. 'Byron addresses') are\n completely excluded from Plutus contexts. Thus, from an on-chain\n perspective only exists addresses of type 00, 01, ..., 07 as detailed\n in [CIP-0019 :: Shelley Addresses](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0019/#shelley-addresses).",
-                        "anyOf": [
-                          {
-                            "title": "Address",
-                            "dataType": "constructor",
-                            "index": 0,
-                            "fields": [
-                              {
-                                "title": "payment_credential",
-                                "description": "A general structure for representing an on-chain `Credential`.\n\n Credentials are always one of two kinds: a direct public/private key\n pair, or a script (native or Plutus).",
-                                "anyOf": [
-                                  {
-                                    "title": "VerificationKeyCredential",
-                                    "dataType": "constructor",
-                                    "index": 0,
-                                    "fields": [
-                                      {
-                                        "dataType": "bytes"
-                                      }
-                                    ]
-                                  },
-                                  {
-                                    "title": "ScriptCredential",
-                                    "dataType": "constructor",
-                                    "index": 1,
-                                    "fields": [
-                                      {
-                                        "dataType": "bytes"
-                                      }
-                                    ]
-                                  }
-                                ]
-                              },
-                              {
-                                "title": "stake_credential",
-                                "anyOf": [
-                                  {
-                                    "title": "Some",
-                                    "description": "An optional value.",
-                                    "dataType": "constructor",
-                                    "index": 0,
-                                    "fields": [
-                                      {
-                                        "title": "Referenced",
-                                        "description": "Represent a type of object that can be represented either inline (by hash)\n or via a reference (i.e. a pointer to an on-chain location).\n\n This is mainly use for capturing pointers to a stake credential\n registration certificate in the case of so-called pointer addresses.",
-                                        "anyOf": [
-                                          {
-                                            "title": "Inline",
-                                            "dataType": "constructor",
-                                            "index": 0,
-                                            "fields": [
-                                              {
-                                                "title": "Credential",
-                                                "description": "A general structure for representing an on-chain `Credential`.\n\n Credentials are always one of two kinds: a direct public/private key\n pair, or a script (native or Plutus).",
-                                                "anyOf": [
-                                                  {
-                                                    "title": "VerificationKeyCredential",
-                                                    "dataType": "constructor",
-                                                    "index": 0,
-                                                    "fields": [
-                                                      {
-                                                        "dataType": "bytes"
-                                                      }
-                                                    ]
-                                                  },
-                                                  {
-                                                    "title": "ScriptCredential",
-                                                    "dataType": "constructor",
-                                                    "index": 1,
-                                                    "fields": [
-                                                      {
-                                                        "dataType": "bytes"
-                                                      }
-                                                    ]
-                                                  }
-                                                ]
-                                              }
-                                            ]
-                                          },
-                                          {
-                                            "title": "Pointer",
-                                            "dataType": "constructor",
-                                            "index": 1,
-                                            "fields": [
-                                              {
-                                                "title": "slot_number",
-                                                "dataType": "integer"
-                                              },
-                                              {
-                                                "title": "transaction_index",
-                                                "dataType": "integer"
-                                              },
-                                              {
-                                                "title": "certificate_index",
-                                                "dataType": "integer"
-                                              }
-                                            ]
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  },
-                                  {
-                                    "title": "None",
-                                    "description": "Nothing.",
-                                    "dataType": "constructor",
-                                    "index": 1,
-                                    "fields": []
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "title": "requested_option",
-                        "anyOf": [
-                          {
-                            "title": "SpecificValue",
-                            "dataType": "constructor",
-                            "index": 0,
-                            "fields": [
-                              {
-                                "title": "Value",
-                                "description": "A multi-asset output `Value`. Contains tokens indexed by [PolicyId](#PolicyId) and [AssetName](#AssetName).\n\n This type maintain some invariants by construction; in particular, a `Value` will never contain a\n zero quantity of a particular token.",
-                                "dataType": "map",
-                                "keys": {
-                                  "dataType": "bytes"
+        "schema": {
+          "anyOf": [
+            {
+              "title": "Listing",
+              "dataType": "constructor",
+              "index": 0,
+              "fields": [
+                {
+                  "title": "ListingDetails",
+                  "anyOf": [
+                    {
+                      "title": "ListingDetails",
+                      "dataType": "constructor",
+                      "index": 0,
+                      "fields": [
+                        {
+                          "title": "owner",
+                          "description": "A Cardano `Address` typically holding one or two credential references.\n\n Note that legacy bootstrap addresses (a.k.a. 'Byron addresses') are\n completely excluded from Plutus contexts. Thus, from an on-chain\n perspective only exists addresses of type 00, 01, ..., 07 as detailed\n in [CIP-0019 :: Shelley Addresses](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0019/#shelley-addresses).",
+                          "anyOf": [
+                            {
+                              "title": "Address",
+                              "dataType": "constructor",
+                              "index": 0,
+                              "fields": [
+                                {
+                                  "title": "payment_credential",
+                                  "description": "A general structure for representing an on-chain `Credential`.\n\n Credentials are always one of two kinds: a direct public/private key\n pair, or a script (native or Plutus).",
+                                  "anyOf": [
+                                    {
+                                      "title": "VerificationKeyCredential",
+                                      "dataType": "constructor",
+                                      "index": 0,
+                                      "fields": [
+                                        {
+                                          "dataType": "bytes"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "title": "ScriptCredential",
+                                      "dataType": "constructor",
+                                      "index": 1,
+                                      "fields": [
+                                        {
+                                          "dataType": "bytes"
+                                        }
+                                      ]
+                                    }
+                                  ]
                                 },
-                                "values": {
-                                  "dataType": "map",
-                                  "keys": {
-                                    "dataType": "bytes"
-                                  },
-                                  "values": {
-                                    "dataType": "integer"
-                                  }
-                                }
-                              }
-                            ]
-                          },
-                          {
-                            "title": "SpecificPolicyIdWithConstraints",
-                            "dataType": "constructor",
-                            "index": 1,
-                            "fields": [
-                              {
-                                "dataType": "bytes"
-                              },
-                              {
-                                "dataType": "list",
-                                "items": {
-                                  "dataType": "bytes"
-                                }
-                              },
-                              {
-                                "title": "Optional",
-                                "anyOf": [
-                                  {
-                                    "title": "Some",
-                                    "description": "An optional value.",
-                                    "dataType": "constructor",
-                                    "index": 0,
-                                    "fields": [
-                                      {
-                                        "dataType": "list",
-                                        "items": {
+                                {
+                                  "title": "stake_credential",
+                                  "anyOf": [
+                                    {
+                                      "title": "Some",
+                                      "description": "An optional value.",
+                                      "dataType": "constructor",
+                                      "index": 0,
+                                      "fields": [
+                                        {
+                                          "title": "Referenced",
+                                          "description": "Represent a type of object that can be represented either inline (by hash)\n or via a reference (i.e. a pointer to an on-chain location).\n\n This is mainly use for capturing pointers to a stake credential\n registration certificate in the case of so-called pointer addresses.",
                                           "anyOf": [
                                             {
-                                              "title": "Included",
+                                              "title": "Inline",
+                                              "dataType": "constructor",
+                                              "index": 0,
+                                              "fields": [
+                                                {
+                                                  "title": "Credential",
+                                                  "description": "A general structure for representing an on-chain `Credential`.\n\n Credentials are always one of two kinds: a direct public/private key\n pair, or a script (native or Plutus).",
+                                                  "anyOf": [
+                                                    {
+                                                      "title": "VerificationKeyCredential",
+                                                      "dataType": "constructor",
+                                                      "index": 0,
+                                                      "fields": [
+                                                        {
+                                                          "dataType": "bytes"
+                                                        }
+                                                      ]
+                                                    },
+                                                    {
+                                                      "title": "ScriptCredential",
+                                                      "dataType": "constructor",
+                                                      "index": 1,
+                                                      "fields": [
+                                                        {
+                                                          "dataType": "bytes"
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "title": "Pointer",
+                                              "dataType": "constructor",
+                                              "index": 1,
+                                              "fields": [
+                                                {
+                                                  "title": "slot_number",
+                                                  "dataType": "integer"
+                                                },
+                                                {
+                                                  "title": "transaction_index",
+                                                  "dataType": "integer"
+                                                },
+                                                {
+                                                  "title": "certificate_index",
+                                                  "dataType": "integer"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "title": "None",
+                                      "description": "Nothing.",
+                                      "dataType": "constructor",
+                                      "index": 1,
+                                      "fields": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "title": "requested_lovelace",
+                          "dataType": "integer"
+                        },
+                        {
+                          "title": "private_listing",
+                          "anyOf": [
+                            {
+                              "title": "Some",
+                              "description": "An optional value.",
+                              "dataType": "constructor",
+                              "index": 0,
+                              "fields": [
+                                {
+                                  "title": "Address",
+                                  "description": "A Cardano `Address` typically holding one or two credential references.\n\n Note that legacy bootstrap addresses (a.k.a. 'Byron addresses') are\n completely excluded from Plutus contexts. Thus, from an on-chain\n perspective only exists addresses of type 00, 01, ..., 07 as detailed\n in [CIP-0019 :: Shelley Addresses](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0019/#shelley-addresses).",
+                                  "anyOf": [
+                                    {
+                                      "title": "Address",
+                                      "dataType": "constructor",
+                                      "index": 0,
+                                      "fields": [
+                                        {
+                                          "title": "payment_credential",
+                                          "description": "A general structure for representing an on-chain `Credential`.\n\n Credentials are always one of two kinds: a direct public/private key\n pair, or a script (native or Plutus).",
+                                          "anyOf": [
+                                            {
+                                              "title": "VerificationKeyCredential",
                                               "dataType": "constructor",
                                               "index": 0,
                                               "fields": [
@@ -536,7 +236,7 @@
                                               ]
                                             },
                                             {
-                                              "title": "Excluded",
+                                              "title": "ScriptCredential",
                                               "dataType": "constructor",
                                               "index": 1,
                                               "fields": [
@@ -546,97 +246,409 @@
                                               ]
                                             }
                                           ]
+                                        },
+                                        {
+                                          "title": "stake_credential",
+                                          "anyOf": [
+                                            {
+                                              "title": "Some",
+                                              "description": "An optional value.",
+                                              "dataType": "constructor",
+                                              "index": 0,
+                                              "fields": [
+                                                {
+                                                  "title": "Referenced",
+                                                  "description": "Represent a type of object that can be represented either inline (by hash)\n or via a reference (i.e. a pointer to an on-chain location).\n\n This is mainly use for capturing pointers to a stake credential\n registration certificate in the case of so-called pointer addresses.",
+                                                  "anyOf": [
+                                                    {
+                                                      "title": "Inline",
+                                                      "dataType": "constructor",
+                                                      "index": 0,
+                                                      "fields": [
+                                                        {
+                                                          "title": "Credential",
+                                                          "description": "A general structure for representing an on-chain `Credential`.\n\n Credentials are always one of two kinds: a direct public/private key\n pair, or a script (native or Plutus).",
+                                                          "anyOf": [
+                                                            {
+                                                              "title": "VerificationKeyCredential",
+                                                              "dataType": "constructor",
+                                                              "index": 0,
+                                                              "fields": [
+                                                                {
+                                                                  "dataType": "bytes"
+                                                                }
+                                                              ]
+                                                            },
+                                                            {
+                                                              "title": "ScriptCredential",
+                                                              "dataType": "constructor",
+                                                              "index": 1,
+                                                              "fields": [
+                                                                {
+                                                                  "dataType": "bytes"
+                                                                }
+                                                              ]
+                                                            }
+                                                          ]
+                                                        }
+                                                      ]
+                                                    },
+                                                    {
+                                                      "title": "Pointer",
+                                                      "dataType": "constructor",
+                                                      "index": 1,
+                                                      "fields": [
+                                                        {
+                                                          "title": "slot_number",
+                                                          "dataType": "integer"
+                                                        },
+                                                        {
+                                                          "title": "transaction_index",
+                                                          "dataType": "integer"
+                                                        },
+                                                        {
+                                                          "title": "certificate_index",
+                                                          "dataType": "integer"
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "title": "None",
+                                              "description": "Nothing.",
+                                              "dataType": "constructor",
+                                              "index": 1,
+                                              "fields": []
+                                            }
+                                          ]
                                         }
-                                      }
-                                    ]
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "title": "None",
+                              "description": "Nothing.",
+                              "dataType": "constructor",
+                              "index": 1,
+                              "fields": []
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Bid",
+              "dataType": "constructor",
+              "index": 1,
+              "fields": [
+                {
+                  "title": "BiddingDetails",
+                  "anyOf": [
+                    {
+                      "title": "BiddingDetails",
+                      "dataType": "constructor",
+                      "index": 0,
+                      "fields": [
+                        {
+                          "title": "owner",
+                          "description": "A Cardano `Address` typically holding one or two credential references.\n\n Note that legacy bootstrap addresses (a.k.a. 'Byron addresses') are\n completely excluded from Plutus contexts. Thus, from an on-chain\n perspective only exists addresses of type 00, 01, ..., 07 as detailed\n in [CIP-0019 :: Shelley Addresses](https://github.com/cardano-foundation/CIPs/tree/master/CIP-0019/#shelley-addresses).",
+                          "anyOf": [
+                            {
+                              "title": "Address",
+                              "dataType": "constructor",
+                              "index": 0,
+                              "fields": [
+                                {
+                                  "title": "payment_credential",
+                                  "description": "A general structure for representing an on-chain `Credential`.\n\n Credentials are always one of two kinds: a direct public/private key\n pair, or a script (native or Plutus).",
+                                  "anyOf": [
+                                    {
+                                      "title": "VerificationKeyCredential",
+                                      "dataType": "constructor",
+                                      "index": 0,
+                                      "fields": [
+                                        {
+                                          "dataType": "bytes"
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "title": "ScriptCredential",
+                                      "dataType": "constructor",
+                                      "index": 1,
+                                      "fields": [
+                                        {
+                                          "dataType": "bytes"
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "title": "stake_credential",
+                                  "anyOf": [
+                                    {
+                                      "title": "Some",
+                                      "description": "An optional value.",
+                                      "dataType": "constructor",
+                                      "index": 0,
+                                      "fields": [
+                                        {
+                                          "title": "Referenced",
+                                          "description": "Represent a type of object that can be represented either inline (by hash)\n or via a reference (i.e. a pointer to an on-chain location).\n\n This is mainly use for capturing pointers to a stake credential\n registration certificate in the case of so-called pointer addresses.",
+                                          "anyOf": [
+                                            {
+                                              "title": "Inline",
+                                              "dataType": "constructor",
+                                              "index": 0,
+                                              "fields": [
+                                                {
+                                                  "title": "Credential",
+                                                  "description": "A general structure for representing an on-chain `Credential`.\n\n Credentials are always one of two kinds: a direct public/private key\n pair, or a script (native or Plutus).",
+                                                  "anyOf": [
+                                                    {
+                                                      "title": "VerificationKeyCredential",
+                                                      "dataType": "constructor",
+                                                      "index": 0,
+                                                      "fields": [
+                                                        {
+                                                          "dataType": "bytes"
+                                                        }
+                                                      ]
+                                                    },
+                                                    {
+                                                      "title": "ScriptCredential",
+                                                      "dataType": "constructor",
+                                                      "index": 1,
+                                                      "fields": [
+                                                        {
+                                                          "dataType": "bytes"
+                                                        }
+                                                      ]
+                                                    }
+                                                  ]
+                                                }
+                                              ]
+                                            },
+                                            {
+                                              "title": "Pointer",
+                                              "dataType": "constructor",
+                                              "index": 1,
+                                              "fields": [
+                                                {
+                                                  "title": "slot_number",
+                                                  "dataType": "integer"
+                                                },
+                                                {
+                                                  "title": "transaction_index",
+                                                  "dataType": "integer"
+                                                },
+                                                {
+                                                  "title": "certificate_index",
+                                                  "dataType": "integer"
+                                                }
+                                              ]
+                                            }
+                                          ]
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "title": "None",
+                                      "description": "Nothing.",
+                                      "dataType": "constructor",
+                                      "index": 1,
+                                      "fields": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "title": "requested_option",
+                          "anyOf": [
+                            {
+                              "title": "SpecificValue",
+                              "dataType": "constructor",
+                              "index": 0,
+                              "fields": [
+                                {
+                                  "title": "Value",
+                                  "description": "A multi-asset output `Value`. Contains tokens indexed by [PolicyId](#PolicyId) and [AssetName](#AssetName).\n\n This type maintain some invariants by construction; in particular, a `Value` will never contain a\n zero quantity of a particular token.",
+                                  "dataType": "map",
+                                  "keys": {
+                                    "dataType": "bytes"
                                   },
-                                  {
-                                    "title": "None",
-                                    "description": "Nothing.",
-                                    "dataType": "constructor",
-                                    "index": 1,
-                                    "fields": []
+                                  "values": {
+                                    "dataType": "map",
+                                    "keys": {
+                                      "dataType": "bytes"
+                                    },
+                                    "values": {
+                                      "dataType": "integer"
+                                    }
                                   }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
+                                }
+                              ]
+                            },
+                            {
+                              "title": "SpecificPolicyIdWithConstraints",
+                              "dataType": "constructor",
+                              "index": 1,
+                              "fields": [
+                                {
+                                  "dataType": "bytes"
+                                },
+                                {
+                                  "dataType": "list",
+                                  "items": {
+                                    "dataType": "bytes"
+                                  }
+                                },
+                                {
+                                  "title": "Optional",
+                                  "anyOf": [
+                                    {
+                                      "title": "Some",
+                                      "description": "An optional value.",
+                                      "dataType": "constructor",
+                                      "index": 0,
+                                      "fields": [
+                                        {
+                                          "dataType": "list",
+                                          "items": {
+                                            "anyOf": [
+                                              {
+                                                "title": "Included",
+                                                "dataType": "constructor",
+                                                "index": 0,
+                                                "fields": [
+                                                  {
+                                                    "dataType": "bytes"
+                                                  }
+                                                ]
+                                              },
+                                              {
+                                                "title": "Excluded",
+                                                "dataType": "constructor",
+                                                "index": 1,
+                                                "fields": [
+                                                  {
+                                                    "dataType": "bytes"
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "title": "None",
+                                      "description": "Nothing.",
+                                      "dataType": "constructor",
+                                      "index": 1,
+                                      "fields": []
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "redeemer": {
+        "title": "TradeAction",
+        "schema": {
+          "anyOf": [
+            {
+              "title": "Sell",
+              "dataType": "constructor",
+              "index": 0,
+              "fields": []
+            },
+            {
+              "title": "Buy",
+              "dataType": "constructor",
+              "index": 1,
+              "fields": []
+            },
+            {
+              "title": "Cancel",
+              "dataType": "constructor",
+              "index": 2,
+              "fields": []
+            }
+          ]
+        }
+      },
+      "parameters": [
+        {
+          "title": "Optional",
+          "schema": {
+            "anyOf": [
+              {
+                "title": "Some",
+                "description": "An optional value.",
+                "dataType": "constructor",
+                "index": 0,
+                "fields": [
+                  {
+                    "dataType": "bytes"
+                  }
+                ]
+              },
+              {
+                "title": "None",
+                "description": "Nothing.",
+                "dataType": "constructor",
+                "index": 1,
+                "fields": []
+              }
+            ]
+          }
+        },
+        {
+          "title": "RoyaltyToken",
+          "schema": {
+            "anyOf": [
+              {
+                "title": "RoyaltyToken",
+                "dataType": "constructor",
+                "index": 0,
+                "fields": [
+                  {
+                    "title": "policy_id",
+                    "dataType": "bytes"
+                  },
+                  {
+                    "title": "asset_name",
+                    "dataType": "bytes"
                   }
                 ]
               }
             ]
           }
-        ]
-      },
-      "redeemer": {
-        "title": "TradeAction",
-        "anyOf": [
-          {
-            "title": "Sell",
-            "dataType": "constructor",
-            "index": 0,
-            "fields": []
-          },
-          {
-            "title": "Buy",
-            "dataType": "constructor",
-            "index": 1,
-            "fields": []
-          },
-          {
-            "title": "Cancel",
-            "dataType": "constructor",
-            "index": 2,
-            "fields": []
-          }
-        ]
-      },
-      "parameters": [
-        {
-          "title": "Optional",
-          "anyOf": [
-            {
-              "title": "Some",
-              "description": "An optional value.",
-              "dataType": "constructor",
-              "index": 0,
-              "fields": [
-                {
-                  "dataType": "bytes"
-                }
-              ]
-            },
-            {
-              "title": "None",
-              "description": "Nothing.",
-              "dataType": "constructor",
-              "index": 1,
-              "fields": []
-            }
-          ]
-        },
-        {
-          "title": "RoyaltyToken",
-          "anyOf": [
-            {
-              "title": "RoyaltyToken",
-              "dataType": "constructor",
-              "index": 0,
-              "fields": [
-                {
-                  "title": "policy_id",
-                  "dataType": "bytes"
-                },
-                {
-                  "title": "asset_name",
-                  "dataType": "bytes"
-                }
-              ]
-            }
-          ]
         }
       ],
       "compiledCode": "591498010000323232323232323232323222222533300832323232323232323232323232323232323232323232323232323232323232323232323232533302d3370e0029000099191919299981899808012817099191919191919191999111919299981f19b87001480004c8c8cdd79ba6300d001374c601a66604a00e6606e607000a90000031bab30460013036002132533303f3370e0049001099191919191929998250018a99982299b8730483754002900109919191919191919299982699b8f00d005100114a0a666098a66609866609866e3c00522104000643b0004a09444ccc130cdc7800a44104001f4d70004a0944528099982619b8f00148810400258a50004a09445281980b800a40106eb8c144004c144008dd718278009bac304e001303e3253330473370e900018251baa001100115330494912a4173736572746564206f6e20696e636f727265637420636f6e7374727563746f722076617269616e742e001633021301c0012323371e0020106eb8c138004ccc0a8030cc0f0c0f4029200000b007007304b001304b0023758609200260920046eb8c11c004c0dc00c0044c8c8c8c8c8c8c8c8c8c8c8c8c8c8c8cc138c94ccc138cdc3800a40002646464646464a6660b260b80042660aa660a400a4646493182d0011bae305800149854cc159241364c6973742f5475706c652f436f6e73747220636f6e7461696e73206d6f7265206974656d73207468616e2069742065787065637465640016305a001305a002375a60b000260b00046eacc158004c11800854cc1412412b436f6e73747220696e64657820646964206e6f74206d6174636820616e7920747970652076617269616e740016305037540026464660a06609a002464931bae0013232323232533305453330545333054005100414a020022940400852819b8f01400c3330523371e002910104000643b0004a0944cc07402120083253330513370e00290010a5113253330523370e004900009919299982c800899baf374e00c6e9d2f5c00066eb0c168004c12803c0044c8c8cc06c0048c94ccc154cdc3800a40002646466042012466e3c004008dd7182e80098268010991919982b99810804919b8f0010024a0944dd7182e8009826801182b9baa001375860b2002609201c60a66ea80354ccc15003852889980c807119b8f0010033758646400260ac002608c64a66609e66e1d20003052375400220022a660a29212a4173736572746564206f6e20696e636f727265637420636f6e7374727563746f722076617269616e742e00163303837566608a608c00490002450674726169747300375c646400260aa002608a64a66609c66e1d20003051375400220022a660a092012a4173736572746564206f6e20696e636f727265637420636f6e7374727563746f722076617269616e742e001633037375666088608a0029000245047479706500330350133304330443304330440014800920043052001304232533304b3370e900018271baa0011001153304d4912a4173736572746564206f6e20696e636f727265637420636f6e7374727563746f722076617269616e742e00163303f37586608260840229001119b873330383756660846086660846086002900124004008664466e2800800522104000643b000332233371800266e04dc68010008010012401090011bae30500013050002375c609c0026eb0c134004c0f4c94ccc118cdc3a400060926ea8004400454cc12124012a4173736572746564206f6e20696e636f727265637420636f6e7374727563746f722076617269616e742e001633020301b0012323371e0020106eb8c134004ccc0a402ccc0ecc0f0025200000a304a001304a0023758609000260900046eb8c118004c0d8008c100dd500099819981a000a400405a0560166002002444a66607e00429444c8c94ccc0f0c00c0084ccc01401400400c528182180198208011800800911299981e8010a5013232533303a300300214a2266600a00a00200660820066eb8c0fc00888ccdc6240000020044640026644660080040020029101003001001222533303900214bd6f7b630099191919299981c19b8f005001100313303e337606ea4004dd30011998038038018029bae303a00337566074004607a00660760042940c0a0c94ccc0c4cdc3a400060686ea8004400454cc0cd2412a4173736572746564206f6e20696e636f727265637420636f6e7374727563746f722076617269616e742e0016333301202402200102c301737566604c604e6604c604e044900124004606a002604aa66605a66e1d20023030375405020502a6605e92012a4173736572746564206f6e20696e636f727265637420636f6e7374727563746f722076617269616e742e00161533302d3370e002900109919191919192999819a9998199980901381808008a5013333222233712002603e6660380086605c605e00490000018138128028010a50323253330343370e0029000099191998058150009bab3302d302e3302d302e029480092002303c001302c00214a2606c6ea8004cc0a4c0a80112004375a6070002605064a66606266e1d20003034375400220022a660669212a4173736572746564206f6e20696e636f727265637420636f6e7374727563746f722076617269616e742e0016333301202402200102c375a6604c604e0029001181a8009812a99981699b8748000c0c0dd501408140a99817a4812a4173736572746564206f6e20696e636f727265637420636f6e7374727563746f722076617269616e742e001613233300302200137566604a604c6604a604c04290012400464a66605c66e1c00520001323233027302800148000c0d8004c0980a44c8c8cc09cc0a000520003036001302602930303754050605e6ea8098888c8c94ccc0c0cdc3800a4000264646601e6eb0cc0a4c0a801d2010001375c607000260500042646464a66606666e1c0052000132323232323371066604a6eaccc0bcc0c0035200800100248000dd7181f0019bae303d303e002375a6078607a607a0026eb0c0ec004c0ac008528181a9baa0013300c3007004232323371e00291010f000020e05363726970744f776e657200375c60740026074002605000460646ea8004cc094c0980092000233322233300700300200100122233322233300800300200100222233037374e6606e6ea4018cc0dcdd48019981b9ba80024bd70000800a5eb80c00400488894ccc0c400c40044c8c8c8c8ccc018004008cccc02002000c018014dd718190019bad30320023035004303300330010012222533302f00310011323232323330060010023333008008003006005375c60600066eacc0c0008c0cc010c0c400cc0040048894ccc0b00084cdd2a400497ae0132325333029300300213374a9000198179ba70024bd70099980280280080198180019bac302e0023001001222533302a00214a026464a66604e66e3c00800c528899980280280080198170019bae302c002223253330243370e002900009919198031bac3301d301e005480108c8c94ccc0a4cdc3800a40002646466e3c018004dd7181880098108010a50302b37540026603c603e6603c603e0029000240006eb8c0b0004c07000852898131baa0013001001222533302700214a026464a666048600600429444ccc01401400400cc0ac00cc0a40088888c8c8c8cc098c94ccc098cdc3800a40002646464646464a666062606800426605a6605400a46605c64a66605c66e1c005200013232323232323232533303b303e0021330373253330373370e00290000991919192999820182180109981e19299981e19b87001480004c8c94ccc10cc1180085261533040491364c6973742f5475706c652f436f6e73747220636f6e7461696e73206d6f7265206974656d73207468616e2069742065787065637465640016375c608800260680082a66607866e1c00520021323253330433046002149854cc1012401364c6973742f5475706c652f436f6e73747220636f6e7461696e73206d6f7265206974656d73207468616e2069742065787065637465640016375c608800260680082a6607c9212b436f6e73747220696e64657820646964206e6f74206d6174636820616e7920747970652076617269616e740016303e37540066607864a66607866e1c00520001323253330433046002149854cc101241364c6973742f5475706c652f436f6e73747220636f6e7461696e73206d6f7265206974656d73207468616e2069742065787065637465640016304400130340021533303c3370e00290010a4c2a6607c9212b436f6e73747220696e64657820646964206e6f74206d6174636820616e7920747970652076617269616e740016303e3754002930a9981ea481364c6973742f5475706c652f436f6e73747220636f6e7461696e73206d6f7265206974656d73207468616e206974206578706563746564001630410013041002303f001302f00815330394912b436f6e73747220696e64657820646964206e6f74206d6174636820616e7920747970652076617269616e7400163039375400e6606e64a66606e66e1c005200013232533303e3041002149854cc0ed241364c6973742f5475706c652f436f6e73747220636f6e7461696e73206d6f7265206974656d73207468616e2069742065787065637465640016303f001302f004153330373370e00290010a4c2a660729212b436f6e73747220696e64657820646964206e6f74206d6174636820616e7920747970652076617269616e740016303937540066606e64a66606e66e1c005200013232533303e3041002149854cc0ed241364c6973742f5475706c652f436f6e73747220636f6e7461696e73206d6f7265206974656d73207468616e2069742065787065637465640016303f001302f002153330373370e00290010a4c2a660729212b436f6e73747220696e64657820646964206e6f74206d6174636820616e7920747970652076617269616e74001630393754002930a9981c2481364c6973742f5475706c652f436f6e73747220636f6e7461696e73206d6f7265206974656d73207468616e2069742065787065637465640016303c001303c002303a001303a002375a60700026070004606c002604c0042a660609212b436f6e73747220696e64657820646964206e6f74206d6174636820616e7920747970652076617269616e740016303037540029324c2a6605c921364c6973742f5475706c652f436f6e73747220636f6e7461696e73206d6f7265206974656d73207468616e206974206578706563746564001630320013032002375a606000260600046eb0c0b8004c07800854cc0a12412b436f6e73747220696e64657820646964206e6f74206d6174636820616e7920747970652076617269616e740016302837540026666601000e6eb0cc070c07400520000060050053300d0063301b301c3301b301c001480092004302a001301a3253330233370e900018131baa0011001153302549012a4173736572746564206f6e20696e636f727265637420636f6e7374727563746f722076617269616e742e00163301737586603260340089001119b8733301037566603460366603460360029001240046eb8cc068c06c0092000375c6603460360049001240046002002444444a66604e008266e95200033028375000297ae0132323232325333027001133333300b00b00a0040080073370200c004266e9520024bd7019b89001300e33300b0093301d301e0044800001cc8cc88c94ccc0a4cdc3800a400026464a66605666e2000401440044014dd698188009810801080198159baa0010013301d301e00448018cc88c94ccc0a0cdc3800a400026464a66605466e2001400440044014dd698180009810001080198151baa0010013301c301d00348010cdc199b8200448050dd69980d980e00124004605600a605200844464a6660480022c264a66604a0022646eaccc060c064005200230270021630270013300437586602a602c00690021299980f99baf3301630170014800000c4cdd79980b180b800a400866e952004330250024bd700a503001001222533302100214bd7009919299980f18018010998120011998028028008018999802802800801981280198118011199803000a441004881002232533301a3370e00290000b0a99980d19b87001480084c8c8c8c8004c090004c050c94ccc074cdc3a400060406ea8004400454cc07d2412a4173736572746564206f6e20696e636f727265637420636f6e7374727563746f722076617269616e742e001633006375666026602800a900a0009bae302200130120021323200130220013012002301c375400244660060040026002002444a666038004266e9520024bd70099191919299980d99b8f00500113374a90001981080125eb804ccc01c01c00c014dd7180e801980e8011810001980f0011111919199119299980d99b870014800840084c8c8004dd698118009809801980e9baa00200148000cc88c94ccc068cdc3800a4004266e9520024bd700991918020009bab30220013012003301c375400400246644660100040020020066644660100040020060046002002444a666032004266e9520024bd70099191919299980c19b8f00500113374a90001980f1ba80024bd7009998038038018029bae301a003375a6034004603a00660360046002002444a66602e004266e9520024bd70099191919299980b19b8f00500113374a90001980e1ba60024bd7009998038038018029bae3018003375660300046036006603200466e95200033014330053006001480012f5c064646464640026030002601064a66602266e1d20003014375400220022a660269212a4173736572746564206f6e20696e636f727265637420636f6e7374727563746f722076617269616e742e00163300537586600e60106600e6010006900024000466ebccc020c02400520000023016001300632533300f3370e900118091baa001100115330114912a4173736572746564206f6e20696e636f727265637420636f6e7374727563746f722076617269616e742e001633005300600148008018cc00cc01001520003001001222533301200213374a900125eb804c8c94ccc03cc00c0084cdd2a40006602a00497ae013330050050010033016003301400222323330010014800000c888cccc038cdc380200100a919980200219b8000348008c05c0040048c034dd50008a4c2c6002002444a666012004293099802980098058011998018019806001000ab9a5736ae7155ceaab9e5573eae815d0aba201",
