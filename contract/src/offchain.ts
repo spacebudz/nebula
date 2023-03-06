@@ -194,40 +194,16 @@ export class Contract {
     }
     const listingDetails = tradeDatum.Listing;
 
-    const owner: Address = toAddress(
-      listingDetails[0].owner,
-      this.lucid,
-    );
-
-    const ownerKey = paymentCredentialOf(owner).hash;
-
     listingDetails[0].requestedLovelace = lovelace;
     listingDetails[0].privateListing = privateListing
       ? fromAddress(privateListing)
       : null;
 
-    const address: Address = await this.lucid.wallet.address();
-
-    if (ownerKey !== paymentCredentialOf(address).hash) {
-      throw new Error("You are not the owner.");
-    }
-
-    const refScripts = await this.getDeployedScripts();
-
     const tx = await this.lucid.newTx()
-      .collectFrom(
-        [listingUtxo],
-        Data.to<D.TradeAction>("Cancel", D.TradeAction),
-      )
+      .compose(await this._cancelListing(listingUtxo))
       .payToContract(listingUtxo.address, {
         inline: Data.to<D.TradeDatum>(tradeDatum, D.TradeDatum),
       }, listingUtxo.assets)
-      .addSignerKey(ownerKey)
-      .compose(
-        refScripts.trade
-          ? this.lucid.newTx().readFrom([refScripts.trade])
-          : this.lucid.newTx().attachSpendingValidator(this.tradeValidator),
-      )
       .complete();
 
     const txSigned = await tx.sign().complete();
@@ -301,11 +277,15 @@ export class Contract {
     }
 
     const owner: Address = toAddress(tradeDatum.Bid[0].owner, this.lucid);
-    const ownerKey = paymentCredentialOf(owner).hash;
+    const ownerCredential = paymentCredentialOf(owner);
 
     const address: Address = await this.lucid.wallet.address();
+    const addressCredential = paymentCredentialOf(address);
 
-    if (ownerKey !== paymentCredentialOf(address).hash) {
+    if (
+      ownerCredential.type === "Key" &&
+      ownerCredential.hash !== addressCredential.hash
+    ) {
       throw new Error("You are not the owner.");
     }
 
@@ -317,7 +297,11 @@ export class Contract {
     ).payToContract(bidUtxo.address, {
       inline: bidUtxo.datum!,
     }, { ...bidUtxo.assets, lovelace })
-      .addSignerKey(ownerKey)
+      .compose(
+        ownerCredential.type === "Key"
+          ? this.lucid.newTx().addSignerKey(ownerCredential.hash)
+          : null,
+      )
       .compose(
         refScripts.trade
           ? this.lucid.newTx().readFrom([refScripts.trade])
@@ -964,21 +948,30 @@ export class Contract {
       throw new Error("Not a listing UTxO");
     }
     const owner: Address = toAddress(tradeDatum.Listing[0].owner, this.lucid);
-    const ownerKey = paymentCredentialOf(owner).hash;
+    const ownerCredential = paymentCredentialOf(owner);
 
     const address: Address = await this.lucid.wallet.address();
+    const addressCredential = paymentCredentialOf(address);
 
-    if (ownerKey !== paymentCredentialOf(address).hash) {
+    if (
+      ownerCredential.type === "Key" &&
+      ownerCredential.hash !== addressCredential.hash
+    ) {
       throw new Error("You are not the owner.");
     }
 
     const refScripts = await this.getDeployedScripts();
 
-    return this.lucid.newTx().collectFrom(
-      [listingUtxo],
-      Data.to<D.TradeAction>("Cancel", D.TradeAction),
-    )
-      .addSignerKey(ownerKey)
+    return this.lucid.newTx()
+      .collectFrom(
+        [listingUtxo],
+        Data.to<D.TradeAction>("Cancel", D.TradeAction),
+      )
+      .compose(
+        ownerCredential.type === "Key"
+          ? this.lucid.newTx().addSignerKey(ownerCredential.hash)
+          : null,
+      )
       .compose(
         refScripts.trade
           ? this.lucid.newTx().readFrom([refScripts.trade])
@@ -1094,11 +1087,15 @@ export class Contract {
       throw new Error("Not a bidding UTxO");
     }
     const owner: Address = toAddress(tradeDatum.Bid[0].owner, this.lucid);
-    const ownerKey = paymentCredentialOf(owner).hash;
+    const ownerCredential = paymentCredentialOf(owner);
 
     const address: Address = await this.lucid.wallet.address();
+    const addressCredential = paymentCredentialOf(address);
 
-    if (ownerKey !== paymentCredentialOf(address).hash) {
+    if (
+      ownerCredential.type === "Key" &&
+      ownerCredential.hash !== addressCredential.hash
+    ) {
       throw new Error("You are not the owner.");
     }
 
@@ -1115,7 +1112,11 @@ export class Contract {
       )
       .mintAssets({ [bidToken]: -1n })
       .validFrom(this.lucid.utils.slotToUnixTime(1000))
-      .addSignerKey(ownerKey)
+      .compose(
+        ownerCredential.type === "Key"
+          ? this.lucid.newTx().addSignerKey(ownerCredential.hash)
+          : null,
+      )
       .compose(
         refScripts.trade
           ? this.lucid.newTx().readFrom([refScripts.trade])
@@ -1146,10 +1147,11 @@ export class Contract {
 
     const refScripts = await this.getDeployedScripts();
 
-    return this.lucid.newTx().collectFrom(
-      [listingUtxo],
-      Data.to<D.TradeAction>("Buy", D.TradeAction),
-    )
+    return this.lucid.newTx()
+      .collectFrom(
+        [listingUtxo],
+        Data.to<D.TradeAction>("Buy", D.TradeAction),
+      )
       .compose(
         await (async () => {
           const { tx, remainingLovelace } = await this._payFee(

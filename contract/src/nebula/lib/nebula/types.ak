@@ -7,6 +7,12 @@ use aiken/transaction/value.{AssetName, PolicyId, Value}
 pub type PublicKeyHash =
   Hash<Blake2b_224, VerificationKey>
 
+pub type Script =
+  ByteArray
+
+pub type ScriptHash =
+  Hash<Blake2b_224, Script>
+
 pub type ListingDetails {
   owner: Address,
   requested_lovelace: Int,

@@ -6,6 +6,7 @@ import {
   fromText,
   generateSeedPhrase,
   Lucid,
+  paymentCredentialOf,
   SpendingValidator,
   toUnit,
 } from "../../deps.ts";
@@ -215,6 +216,14 @@ Deno.test("List and cancel", async () => {
   await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
     await contract.list({ [idToBud(0)]: 1n }, 800000000n),
   );
+
+  await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
+    await contract.changeListing(
+      (await contract.getListings(idToBud(0)))[0],
+      1000000000n,
+    ),
+  );
+
   const [listing] = await contract.getListings(idToBud(0));
   try {
     await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
@@ -233,7 +242,16 @@ Deno.test("Bid and cancel", async () => {
   await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
     await contract.bid([idToBud(0)], 800000000n),
   );
+
+  await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
+    await contract.changeBid(
+      (await contract.getBids({ assetName: idToBud(0) }))[0],
+      1000000000n,
+    ),
+  );
+
   const [bid] = await contract.getBids({ assetName: idToBud(0) });
+
   try {
     await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
       await contract.cancelBid(bid),
@@ -359,5 +377,50 @@ Deno.test("Bundle listing", async () => {
   const [listing] = await contract.getListings(idToBud(25));
   await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
     await contract.buy([listing]),
+  );
+});
+
+Deno.test("List and cancel as multisig", async () => {
+  const script = lucid.utils.nativeScriptFromJson({
+    type: "sig",
+    keyHash: paymentCredentialOf(ACCOUNT_1.address).hash,
+  });
+  const scriptAddress = lucid.utils.validatorToAddress(script);
+
+  await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
+    await lucid.newTx().payToAddress(scriptAddress, {
+      lovelace: 50000000n,
+      [contract.config.policyId + idToBud(0)]: 1n,
+    }).complete().then((tx) => tx.sign().complete()).then((tx) => tx.submit()),
+  );
+
+  await lucid.awaitTx(
+    await lucid
+      .selectWalletFrom({ address: scriptAddress })
+      .newTx()
+      .compose(await contract._list({ [idToBud(0)]: 1n }, 800000000n))
+      .attachSpendingValidator(script)
+      .complete()
+      .then((tx) => {
+        lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase);
+        return tx.sign().complete();
+      })
+      .then((tx) => tx.submit()),
+  );
+  const [listing] = await contract.getListings(idToBud(0));
+
+  const [scriptUtxo] = await lucid.utxosAt(scriptAddress);
+
+  await lucid.awaitTx(
+    await lucid
+      .selectWalletFromSeed(ACCOUNT_1.seedPhrase)
+      .newTx()
+      .collectFrom([scriptUtxo]) // Proving ownership
+      .payToAddress(scriptUtxo.address, scriptUtxo.assets)
+      .compose(await contract._cancelListing(listing))
+      .attachSpendingValidator(script)
+      .complete()
+      .then((tx) => tx.sign().complete())
+      .then((tx) => tx.submit()),
   );
 });

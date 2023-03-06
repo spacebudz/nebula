@@ -35,7 +35,7 @@ validator spend(
         expect Some(remaining_lovelace) =
           paid_fee(tx, payment_datum, accepted_lovelace, royalty_token)
         let checked_private_listing = when listing_details.private_listing is {
-          Some(owner) -> tx_signed_by_address(tx, owner, own_input.output.value)
+          Some(owner) -> tx_signed_by_address(tx, owner)
           None -> True
         }
         paid_protocol(tx, protocol_key) && checked_private_listing && paid_seller(
@@ -50,7 +50,7 @@ validator spend(
           Listing(listing_details) -> listing_details.owner
           Bid(bidding_details) -> bidding_details.owner
         }
-        tx_signed_by_address(tx, owner, own_input.output.value)
+        tx_signed_by_address(tx, owner)
       }
     }
   }

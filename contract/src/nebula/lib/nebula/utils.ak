@@ -8,9 +8,8 @@ use aiken/transaction/credential.{
   Address, ScriptCredential, VerificationKeyCredential,
 }
 use aiken/transaction/value.{Value}
-use nebula/constants
 use nebula/fixture
-use nebula/types.{PaymentDatum}
+use nebula/types.{PaymentDatum, ScriptHash}
 
 pub fn get_own_input(ctx: ScriptContext) -> Input {
   expect Spend(output_reference) = ctx.purpose
@@ -34,33 +33,35 @@ pub fn get_data(tx: Transaction, datum: Datum) -> Data {
 }
 
 /// This is a special signing function. 
-/// Signer can not only be a pub key hash, but also a script.
-/// For pub key hashes it's trivial, but as script owner you need to lock a special
-/// NFT with the asset name 'ScriptOwner' at the UTxO. You decide the script logic behind the minting policy.
-/// Only if you can successfully burn the NFT then the Nebula contract allows you to redeem the value in case of a Cancel operation.
-/// Note: Collisions with other assets having the name 'ScriptOwner' should be avoided!
-pub fn tx_signed_by_address(
-  tx: Transaction,
-  owner: Address,
-  value: Value,
-) -> Bool {
+/// Signer can not only be a pub key address, but also a script address.
+/// Unfortunately extra signatories can only be pub key hashes, that means we need a special mechanism 
+/// to check whether a native or plutus script signed the transaction.
+/// At first it sounds like a good idea to mint an ownership token, but when the other party accepts the bid or listing it will also receive the extra token.
+/// This could lead to some unnecessary bloat after some time. So the better solution is to check for inputs.
+/// If the transaction contains an input with the same script hash as the address in the datum we can assume the transaction was correctly signed.
+/// Of course for plutus script addresses some constraints need to be added. 
+pub fn tx_signed_by_address(tx: Transaction, owner: Address) -> Bool {
   when owner.payment_credential is {
     VerificationKeyCredential(keyhash) ->
       list.has(tx.extra_signatories, keyhash)
-    ScriptCredential(_) ->
-      when
-        list.find(
-          value.flatten(value),
-          fn(asset) {
-            let (_, asset_name, _) = asset
-            asset_name == constants.script_owner
-          },
-        )
-      is {
-        Some((policy_id, asset_name, _)) ->
-          value.quantity_of(tx.mint, policy_id, asset_name) < 0
-        None -> False
-      }
+    ScriptCredential(scripthash) -> signed_with_input(tx, scripthash)
+  }
+}
+
+fn signed_with_input(tx: Transaction, scripthash: ScriptHash) -> Bool {
+  when
+    list.find(
+      tx.inputs,
+      fn(input) {
+        when input.output.address.payment_credential is {
+          VerificationKeyCredential(_) -> False
+          ScriptCredential(scripthash1) -> scripthash == scripthash1
+        }
+      },
+    )
+  is {
+    Some(_) -> True
+    None -> False
   }
 }
 
@@ -68,7 +69,6 @@ test tx_signed_by_address_1() {
   tx_signed_by_address(
     fixture.tx([], []),
     fixture.keyhash_address(#"00010203040506"),
-    value.zero(),
   )
 }
 
@@ -76,15 +76,13 @@ test tx_signed_by_address_2() {
   tx_signed_by_address(
     fixture.tx([], []),
     fixture.scripthash_address(#"010203"),
-    value.from_asset(#"000000", constants.script_owner, 1),
   )
 }
 
 test tx_signed_by_address_3() {
   !tx_signed_by_address(
     fixture.tx([], []),
-    fixture.scripthash_address(#"010203"),
-    value.from_asset(#"000001", constants.script_owner, 1),
+    fixture.scripthash_address(#"010204"),
   )
 }
 

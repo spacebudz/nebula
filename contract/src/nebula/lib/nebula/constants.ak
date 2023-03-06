@@ -7,10 +7,6 @@ pub const label_500 = #"001f4d70"
 
 pub const label_600 = #"00258a50"
 
-// '(2)ScriptOwner' in UTF-8
-// Has 2 as label (private use)
-pub const script_owner = #"000020e05363726970744f776e6572"
-
 //  type_key and traits_key are reserved keywords in the metadata (datum). Any projects that wants to make use of collection offers/bids needs to follow these keywords.
 //  type_key expected a UTF-8 encoded string (ByteArray) and traits_key an array of UTF-8 encoded strings (List<ByteArray>)
 //  Your NFTs need to be CIP-0068 compliant.
