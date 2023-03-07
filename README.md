@@ -17,8 +17,8 @@
 **Note**: The ideal way to handle the royalty token is to have it under the same `policy id` as the collection. This will make the authentication process smoother and more efficient. However, Nebula allows for specifying a different `policy id` if necessary. If you have a royalty token already you can skip the step of the royalty token creation.
 
 ```ts
-import { Contract } from "https://deno.land/x/nebula@0.1.3/contract/mod.ts" // TODO
-import { Lucid, Blockfrost } from "https://deno.land/x/lucid@0.9.2/mod.ts"
+import { Contract } from "https://deno.land/x/nebula@0.1.3/contract/mod.ts"
+import { Lucid, Blockfrost } from "https://deno.land/x/lucid@0.9.4/mod.ts"
 
 const lucid = await Lucid.new(
   new Blockfrost(
@@ -310,9 +310,9 @@ optional_big_int = #6.121([big_int]) / #6.122([])
 royalty_recipient = #6.121([
               address,                    ; definition can be derived from: 
                                           ; https://github.com/input-output-hk/plutus/blob/master/plutus-ledger-api/src/PlutusLedgerApi/V1/Address.hs#L31
-              int,                        ; fee
-              optional_big_int,           ; min fee
-              optional_big_int,           ; max fee
+              int,                        ; variable fee ( calculation: ⌊1 / (fee / 10)⌋ ); integer division with precision 10
+              optional_big_int,           ; min fee (absolute value in lovelace)
+              optional_big_int,           ; max fee (absolute value in lovelace)
             ])
 
 royalty_recipients = [ * royalty_recipient ]
