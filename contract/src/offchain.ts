@@ -695,13 +695,11 @@ export class Contract {
         ownerAddress,
       );
 
-    // We include the stake key of the signer
-    const adjustedTradeAddress = stakeCredential
-      ? this.lucid.utils.credentialToAddress(
-        this.lucid.utils.scriptHashToCredential(this.tradeHash),
-        stakeCredential,
-      )
-      : this.tradeAddress;
+    // We include the stake key of the signer if applicable
+    const tradeAddressWithStake = this.lucid.utils.credentialToAddress(
+      this.lucid.utils.scriptHashToCredential(this.tradeHash),
+      stakeCredential,
+    );
 
     const tradeDatum: D.TradeDatum = {
       Listing: [
@@ -721,7 +719,7 @@ export class Contract {
       ),
     );
 
-    return this.lucid.newTx().payToContract(adjustedTradeAddress, {
+    return this.lucid.newTx().payToContract(tradeAddressWithStake, {
       inline: Data.to<D.TradeDatum>(tradeDatum, D.TradeDatum),
     }, listingAssets);
   }
@@ -760,12 +758,10 @@ export class Contract {
       : fromText("Bid") + bidNames[0];
 
     // We include the stake key of the signer
-    const adjustedTradeAddress = stakeCredential
-      ? this.lucid.utils.credentialToAddress(
-        this.lucid.utils.scriptHashToCredential(this.tradeHash),
-        stakeCredential,
-      )
-      : this.tradeAddress;
+    const tradeAddressWithStake = this.lucid.utils.credentialToAddress(
+      this.lucid.utils.scriptHashToCredential(this.tradeHash),
+      stakeCredential,
+    );
 
     const biddingDatum: D.TradeDatum = {
       Bid: [{
@@ -782,7 +778,7 @@ export class Contract {
       .mintAssets({
         [toUnit(this.bidPolicyId, bidAssetName)]: 1n,
       })
-      .payToContract(adjustedTradeAddress, {
+      .payToContract(tradeAddressWithStake, {
         inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
       }, {
         lovelace,
@@ -802,12 +798,10 @@ export class Contract {
       ownerAddress,
     );
 
-    const adjustedTradeAddress = stakeCredential
-      ? this.lucid.utils.credentialToAddress(
-        this.lucid.utils.scriptHashToCredential(this.tradeHash),
-        stakeCredential,
-      )
-      : this.tradeAddress;
+    const tradeAddressWithStake = this.lucid.utils.credentialToAddress(
+      this.lucid.utils.scriptHashToCredential(this.tradeHash),
+      stakeCredential,
+    );
 
     const biddingDatum: D.TradeDatum = {
       Bid: [{
@@ -834,7 +828,7 @@ export class Contract {
       .mintAssets({
         [toUnit(this.bidPolicyId, fromText("BidOpen"))]: 1n,
       })
-      .payToContract(adjustedTradeAddress, {
+      .payToContract(tradeAddressWithStake, {
         inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
       }, {
         lovelace,
@@ -874,12 +868,10 @@ export class Contract {
       ownerAddress,
     );
 
-    const adjustedTradeAddress = stakeCredential
-      ? this.lucid.utils.credentialToAddress(
-        this.lucid.utils.scriptHashToCredential(this.tradeHash),
-        stakeCredential,
-      )
-      : this.tradeAddress;
+    const tradeAddressWithStake = this.lucid.utils.credentialToAddress(
+      this.lucid.utils.scriptHashToCredential(this.tradeHash),
+      stakeCredential,
+    );
 
     const biddingDatum: D.TradeDatum = {
       Bid: [{
@@ -929,7 +921,7 @@ export class Contract {
       .mintAssets({
         [toUnit(this.bidPolicyId, fromText("BidSwap"))]: 1n,
       })
-      .payToContract(adjustedTradeAddress, {
+      .payToContract(tradeAddressWithStake, {
         inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
       }, {
         ...offeringAssets,
