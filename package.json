@@ -1,6 +1,6 @@
 {
   "name": "@spacebudz/nebula",
-  "version": "0.1.3",
+  "version": "1.0.0",
   "license": "MIT",
   "author": "Alessandro Konrad",
   "description": "A Cardano NFT marketplace contract including chain indexer and event listener for individual projects.",
