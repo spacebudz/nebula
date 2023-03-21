@@ -1246,7 +1246,8 @@ export class Contract {
   }
 }
 
-const SPACEBUDZ_ROYALTY_TOKEN = "";
+const SPACEBUDZ_ROYALTY_TOKEN =
+  "4523c5e21d409b81c95b45b0aea275b8ea1406e6cafea5583b9f8a5f001f4d70526f79616c7479";
 
 const PROTOCOL_FUND_ADDRESS =
   "addr1vxuj4yyqlz0k9er5geeepx0awh2t6kkes0nyp429hsttt3qrnucsx";
