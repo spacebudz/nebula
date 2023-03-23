@@ -12,13 +12,9 @@ import {
 } from "./src/types.ts";
 
 export const config: Config = {
-  scriptHash: "6b119d59fb18d5a67d6713f61c5f34b3ffe35776d9aa372cad7f761e",
-  bidPolicyId: "f2064327c97a911c04139cc4b40a8d4836752c27fc4b0e97de77e1b3",
-  projects: ["8da99f2c04edd1c54993c74a36e8da8d9985334d9429d881e72e7e41"],
-  startPoint: {
-    hash: "7328ac27f51c83d7e565d84272fdcb76cedb3c6ac878b8a02bc129c6d79bf3c7",
-    slot: 18892999,
-  },
+  scriptHash: "6b5d9fa53ca28b537b7f61ef8321f6a2ba620df844ce769d2aafe59d",
+  bidPolicyId: "9785fa0349c462aa109f68110fc350cbc9fcbe5c6f6e27ac4aa3d351",
+  projects: ["4523c5e21d409b81c95b45b0aea275b8ea1406e6cafea5583b9f8a5f"],
 };
 
 export function eventsHandler(events: MarketplaceEvent[]) {
