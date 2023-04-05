@@ -13,7 +13,7 @@
 
 ### Deno
 ```js
-import { Contract } from "https://deno.land/x/nebula@1.0.1/mod.ts";
+import { Contract } from "https://deno.land/x/nebula@1.0.2/mod.ts";
 ```
 
 ### NPM
@@ -27,8 +27,8 @@ npm install @spacebudz/nebula
 **Note**: The ideal way to handle the royalty token is to have it under the same `policy id` as the collection. This will make the authentication process smoother and more efficient. However, Nebula allows for specifying a different `policy id` if necessary. If you have a royalty token already you can skip the step of the royalty token creation.
 
 ```ts
-import { Contract } from "https://deno.land/x/nebula@1.0.1/contract/mod.ts"
-import { Lucid, Blockfrost } from "https://deno.land/x/lucid@0.9.7/mod.ts"
+import { Contract } from "https://deno.land/x/nebula@1.0.2/contract/mod.ts"
+import { Lucid, Blockfrost } from "https://deno.land/x/lucid@0.10.0/mod.ts"
 
 const lucid = await Lucid.new(
   new Blockfrost(
@@ -151,7 +151,7 @@ import {
   Config,
   MarketplaceEvent,
   SaleEventData,
-} from "https://deno.land/x/nebula@1.0.1/watcher/src/types.ts";
+} from "https://deno.land/x/nebula@1.0.2/watcher/src/types.ts";
 
 
 /** 
@@ -259,7 +259,7 @@ export function onChange() {
 2. Start the watcher:
 
 ```
-deno run -A https://deno.land/x/nebula@1.0.1/watcher/mod.ts --ogmios-url ws://localhost:1337 --database ./marketplace.sqlite --config ./config.ts
+deno run -A https://deno.land/x/nebula@1.0.2/watcher/mod.ts --ogmios-url ws://localhost:1337 --database ./marketplace.sqlite --config ./config.ts
 ```
 
 <img width="100%" src="./assets/watcher.png" align="center"/>
@@ -269,7 +269,7 @@ deno run -A https://deno.land/x/nebula@1.0.1/watcher/mod.ts --ogmios-url ws://lo
 Run the querier: 
 
 ```
-deno run -A https://deno.land/x/nebula@1.0.1/watcher/querier.ts --database ./marketplace.sqlite
+deno run -A https://deno.land/x/nebula@1.0.2/watcher/querier.ts --database ./marketplace.sqlite
 ```
 
 Runs on port `3000` by default. It hosts the database and allows you to make simple queries. The API will likely be extended and improved over time.

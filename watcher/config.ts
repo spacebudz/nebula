@@ -1,7 +1,5 @@
 // deno-lint-ignore-file no-unused-vars
 
-// Sample config (preprod network)
-
 import {
   BidAndListingEventData,
   BidOpenEventData,
