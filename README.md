@@ -13,7 +13,7 @@
 
 ### Deno
 ```js
-import { Contract } from "https://deno.land/x/nebula@1.0.3/mod.ts";
+import { Contract } from "https://deno.land/x/nebula@1.0.3/contract/mod.ts";
 ```
 
 ### NPM
