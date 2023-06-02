@@ -21,7 +21,7 @@ export function colorToBerry(color: string): string {
 }
 
 export function idToMatrix(id: number): string {
-  return fromText(`Matrix${id}`);
+  return toLabel(222) + fromText(`Matrix${id}`);
 }
 
 export function sortDesc(a: UTxO, b: UTxO): number {
