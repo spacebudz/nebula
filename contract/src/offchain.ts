@@ -1,6 +1,5 @@
 import {
   Address,
-  applyParamsToScript,
   Assets,
   Data,
   Datum,
@@ -20,7 +19,6 @@ import {
   Unit,
   UTxO,
 } from "../../deps.ts";
-import scripts from "./nebula/plutus.json" assert { type: "json" };
 import {
   checkVariableFee,
   fromAddress,
@@ -39,12 +37,7 @@ import {
   RoyaltyRecipient,
 } from "./types.ts";
 import { budConfig } from "./config.ts";
-
-// Both scripts are PlutusV2
-const oneshotScript =
-  scripts.validators.find((v) => v.title === "oneshot.mint")!.compiledCode;
-const nebulaScript =
-  scripts.validators.find((v) => v.title === "nebula.spend")!.compiledCode;
+import { NebulaSpend, OneshotMint } from "./nebula/plutus.ts";
 
 export class Contract {
   lucid: Lucid;
@@ -86,17 +79,11 @@ export class Contract {
 
     if (this.fundProtocol && !protocolKey) throw "Invalid protocol key!";
 
-    this.tradeValidator = {
-      type: "PlutusV2",
-      script: applyParamsToScript<D.TradeParams>(
-        nebulaScript,
-        [
-          this.fundProtocol ? protocolKey : null,
-          { policyId, assetName: assetName || "" },
-        ],
-        D.TradeParams,
-      ),
-    };
+    this.tradeValidator = new NebulaSpend(
+      this.fundProtocol ? protocolKey : null,
+      { policyId, assetName: assetName || "" },
+    );
+
     this.tradeHash = lucid.utils.validatorToScriptHash(this.tradeValidator);
     this.tradeAddress = lucid.utils.credentialToAddress(
       lucid.utils.scriptHashToCredential(this.tradeHash),
@@ -185,9 +172,9 @@ export class Contract {
     lovelace: Lovelace,
     privateListing?: Address | null,
   ): Promise<TxHash> {
-    const tradeDatum = await this.lucid.datumOf<D.TradeDatum>(
+    const tradeDatum = await this.lucid.datumOf(
       listingUtxo,
-      D.TradeDatum,
+      NebulaSpend.datum,
     );
     if (!("Listing" in tradeDatum)) {
       throw new Error("Not a listing UTxO");
@@ -202,7 +189,7 @@ export class Contract {
     const tx = await this.lucid.newTx()
       .compose(await this._cancelListing(listingUtxo))
       .payToContract(listingUtxo.address, {
-        inline: Data.to<D.TradeDatum>(tradeDatum, D.TradeDatum),
+        inline: Data.to(tradeDatum, NebulaSpend.datum),
       }, listingUtxo.assets)
       .complete();
 
@@ -264,9 +251,9 @@ export class Contract {
   }
 
   async changeBid(bidUtxo: UTxO, lovelace: Lovelace): Promise<TxHash> {
-    const tradeDatum = await this.lucid.datumOf<D.TradeDatum>(
+    const tradeDatum = await this.lucid.datumOf(
       bidUtxo,
-      D.TradeDatum,
+      NebulaSpend.datum,
     );
     if (!("Bid" in tradeDatum)) {
       throw new Error("Not a bidding UTxO");
@@ -293,7 +280,7 @@ export class Contract {
 
     const tx = await this.lucid.newTx().collectFrom(
       [bidUtxo],
-      Data.to<D.TradeAction>("Cancel", D.TradeAction),
+      Data.to("Cancel", NebulaSpend.action),
     ).payToContract(bidUtxo.address, {
       inline: bidUtxo.datum!,
     }, { ...bidUtxo.assets, lovelace })
@@ -449,19 +436,10 @@ export class Contract {
 
     const [utxo] = await lucid.wallet.getUtxos();
 
-    const royaltyMintingPolicy: MintingPolicy = {
-      type: "PlutusV2",
-      script: applyParamsToScript<[D.OutRef]>(
-        oneshotScript,
-        [
-          {
-            txHash: { hash: utxo.txHash },
-            outputIndex: BigInt(utxo.outputIndex),
-          },
-        ],
-        Data.Tuple([D.OutRef]),
-      ),
-    };
+    const royaltyMintingPolicy = new OneshotMint({
+      transactionId: { hash: utxo.txHash },
+      outputIndex: BigInt(utxo.outputIndex),
+    });
 
     const royaltyPolicyId = lucid.utils.mintingPolicyToId(
       royaltyMintingPolicy,
@@ -493,7 +471,7 @@ export class Contract {
       }, Data.void())
       .payToAddressWithData(
         ownersAddress,
-        { inline: Data.to<D.RoyaltyInfo>(royaltyInfo, D.RoyaltyInfo) },
+        { inline: Data.to(royaltyInfo, D.RoyaltyInfo) },
         { [royaltyUnit]: 1n },
       )
       .attachMintingPolicy(royaltyMintingPolicy)
@@ -701,7 +679,7 @@ export class Contract {
       stakeCredential,
     );
 
-    const tradeDatum: D.TradeDatum = {
+    const tradeDatum: NebulaSpend["datum"] = {
       Listing: [
         {
           owner: fromAddress(ownerAddress),
@@ -720,7 +698,7 @@ export class Contract {
     );
 
     return this.lucid.newTx().payToContract(tradeAddressWithStake, {
-      inline: Data.to<D.TradeDatum>(tradeDatum, D.TradeDatum),
+      inline: Data.to(tradeDatum, NebulaSpend.datum),
     }, listingAssets);
   }
 
@@ -763,7 +741,7 @@ export class Contract {
       stakeCredential,
     );
 
-    const biddingDatum: D.TradeDatum = {
+    const biddingDatum: NebulaSpend["datum"] = {
       Bid: [{
         owner: fromAddress(ownerAddress),
         requestedOption: {
@@ -779,7 +757,7 @@ export class Contract {
         [toUnit(this.bidPolicyId, bidAssetName)]: 1n,
       })
       .payToContract(tradeAddressWithStake, {
-        inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
+        inline: Data.to(biddingDatum, NebulaSpend.datum),
       }, {
         lovelace,
         [toUnit(this.bidPolicyId, bidAssetName)]: 1n,
@@ -803,11 +781,11 @@ export class Contract {
       stakeCredential,
     );
 
-    const biddingDatum: D.TradeDatum = {
+    const biddingDatum: NebulaSpend["datum"] = {
       Bid: [{
         owner: fromAddress(ownerAddress),
         requestedOption: {
-          SpecificSymbolWithConstraints: [
+          SpecificPolicyIdWithConstraints: [
             this.config.policyId,
             constraints?.types ? constraints.types.map(fromText) : [],
             constraints?.traits
@@ -829,7 +807,7 @@ export class Contract {
         [toUnit(this.bidPolicyId, fromText("BidOpen"))]: 1n,
       })
       .payToContract(tradeAddressWithStake, {
-        inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
+        inline: Data.to(biddingDatum, NebulaSpend.datum),
       }, {
         lovelace,
         [toUnit(this.bidPolicyId, fromText("BidOpen"))]: 1n,
@@ -873,7 +851,7 @@ export class Contract {
       stakeCredential,
     );
 
-    const biddingDatum: D.TradeDatum = {
+    const biddingDatum: NebulaSpend["datum"] = {
       Bid: [{
         owner: fromAddress(ownerAddress),
         requestedOption: requesting.specific
@@ -891,7 +869,7 @@ export class Contract {
             ],
           }
           : {
-            SpecificSymbolWithConstraints: [
+            SpecificPolicyIdWithConstraints: [
               this.config.policyId,
               requesting.constraints?.types
                 ? requesting.constraints.types.map(fromText)
@@ -922,7 +900,7 @@ export class Contract {
         [toUnit(this.bidPolicyId, fromText("BidSwap"))]: 1n,
       })
       .payToContract(tradeAddressWithStake, {
-        inline: Data.to<D.TradeDatum>(biddingDatum, D.TradeDatum),
+        inline: Data.to(biddingDatum, NebulaSpend.datum),
       }, {
         ...offeringAssets,
         [toUnit(this.bidPolicyId, fromText("BidSwap"))]: 1n,
@@ -932,9 +910,9 @@ export class Contract {
   }
 
   async _cancelListing(listingUtxo: UTxO): Promise<Tx> {
-    const tradeDatum = await this.lucid.datumOf<D.TradeDatum>(
+    const tradeDatum = await this.lucid.datumOf(
       listingUtxo,
-      D.TradeDatum,
+      NebulaSpend.datum,
     );
     if (!("Listing" in tradeDatum)) {
       throw new Error("Not a listing UTxO");
@@ -957,7 +935,7 @@ export class Contract {
     return this.lucid.newTx()
       .collectFrom(
         [listingUtxo],
-        Data.to<D.TradeAction>("Cancel", D.TradeAction),
+        Data.to("Cancel", NebulaSpend.action),
       )
       .compose(
         ownerCredential.type === "Key"
@@ -975,9 +953,9 @@ export class Contract {
     bidUtxo: UTxO,
     assetName?: string,
   ): Promise<Tx> {
-    const tradeDatum = await this.lucid.datumOf<D.TradeDatum>(
+    const tradeDatum = await this.lucid.datumOf(
       bidUtxo,
-      D.TradeDatum,
+      NebulaSpend.datum,
     );
     if (!("Bid" in tradeDatum)) {
       throw new Error("Not a bidding UTxO");
@@ -1002,20 +980,20 @@ export class Contract {
           refNFT: null,
         };
       } else if (
-        "SpecificSymbolWithConstraints" in bidDetails.requestedOption &&
+        "SpecificPolicyIdWithConstraints" in bidDetails.requestedOption &&
         assetName
       ) {
         const policyId: PolicyId =
-          bidDetails.requestedOption.SpecificSymbolWithConstraints[0];
+          bidDetails.requestedOption.SpecificPolicyIdWithConstraints[0];
         const refNFT = toUnit(
           policyId,
           fromUnit(toUnit(policyId, assetName)).name,
           100,
         );
         const types =
-          bidDetails.requestedOption.SpecificSymbolWithConstraints[1];
+          bidDetails.requestedOption.SpecificPolicyIdWithConstraints[1];
         const traits =
-          bidDetails.requestedOption.SpecificSymbolWithConstraints[2];
+          bidDetails.requestedOption.SpecificPolicyIdWithConstraints[2];
 
         return {
           requestedAssets: {
@@ -1027,9 +1005,9 @@ export class Contract {
       throw new Error("No variant matched.");
     })();
 
-    const paymentDatum = Data.to<D.PaymentDatum>({
+    const paymentDatum = Data.to({
       outRef: {
-        txHash: { hash: bidUtxo.txHash },
+        transactionId: { hash: bidUtxo.txHash },
         outputIndex: BigInt(bidUtxo.outputIndex),
       },
     }, D.PaymentDatum);
@@ -1039,7 +1017,7 @@ export class Contract {
     return this.lucid.newTx()
       .collectFrom(
         [bidUtxo],
-        Data.to<D.TradeAction>("Sell", D.TradeAction),
+        Data.to("Sell", NebulaSpend.action),
       )
       .compose(
         refNFT
@@ -1071,9 +1049,9 @@ export class Contract {
   }
 
   async _cancelBid(bidUtxo: UTxO): Promise<Tx> {
-    const tradeDatum = await this.lucid.datumOf<D.TradeDatum>(
+    const tradeDatum = await this.lucid.datumOf(
       bidUtxo,
-      D.TradeDatum,
+      NebulaSpend.datum,
     );
     if (!("Bid" in tradeDatum)) {
       throw new Error("Not a bidding UTxO");
@@ -1100,7 +1078,7 @@ export class Contract {
     return this.lucid.newTx()
       .collectFrom(
         [bidUtxo],
-        Data.to<D.TradeAction>("Cancel", D.TradeAction),
+        Data.to("Cancel", NebulaSpend.action),
       )
       .mintAssets({ [bidToken]: -1n })
       .validFrom(this.lucid.utils.slotToUnixTime(1000))
@@ -1118,9 +1096,9 @@ export class Contract {
   }
 
   async _buy(listingUtxo: UTxO): Promise<Tx> {
-    const tradeDatum = await this.lucid.datumOf<D.TradeDatum>(
+    const tradeDatum = await this.lucid.datumOf(
       listingUtxo,
-      D.TradeDatum,
+      NebulaSpend.datum,
     );
     if (!("Listing" in tradeDatum)) {
       throw new Error("Not a listing UTxO");
@@ -1132,7 +1110,7 @@ export class Contract {
 
     const paymentDatum = Data.to<D.PaymentDatum>({
       outRef: {
-        txHash: { hash: listingUtxo.txHash },
+        transactionId: { hash: listingUtxo.txHash },
         outputIndex: BigInt(listingUtxo.outputIndex),
       },
     }, D.PaymentDatum);
@@ -1142,7 +1120,7 @@ export class Contract {
     return this.lucid.newTx()
       .collectFrom(
         [listingUtxo],
-        Data.to<D.TradeAction>("Buy", D.TradeAction),
+        Data.to("Buy", NebulaSpend.action),
       )
       .compose(
         await (async () => {

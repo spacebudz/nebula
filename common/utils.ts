@@ -75,7 +75,7 @@ export function fromAddress(address: Address): D.Address {
   return {
     paymentCredential: paymentCredential?.type === "Key"
       ? {
-        PublicKeyCredential: [paymentCredential.hash],
+        VerificationKeyCredential: [paymentCredential.hash],
       }
       : { ScriptCredential: [paymentCredential.hash] },
     stakeCredential: stakeCredential
@@ -83,7 +83,7 @@ export function fromAddress(address: Address): D.Address {
         Inline: [
           stakeCredential.type === "Key"
             ? {
-              PublicKeyCredential: [stakeCredential.hash],
+              VerificationKeyCredential: [stakeCredential.hash],
             }
             : { ScriptCredential: [stakeCredential.hash] },
         ],
@@ -94,9 +94,9 @@ export function fromAddress(address: Address): D.Address {
 
 export function toAddress(address: D.Address, lucid: Lucid): Address {
   const paymentCredential = (() => {
-    if ("PublicKeyCredential" in address.paymentCredential) {
+    if ("VerificationKeyCredential" in address.paymentCredential) {
       return lucid.utils.keyHashToCredential(
-        address.paymentCredential.PublicKeyCredential[0],
+        address.paymentCredential.VerificationKeyCredential[0],
       );
     } else {
       return lucid.utils.scriptHashToCredential(
@@ -107,9 +107,9 @@ export function toAddress(address: D.Address, lucid: Lucid): Address {
   const stakeCredential = (() => {
     if (!address.stakeCredential) return undefined;
     if ("Inline" in address.stakeCredential) {
-      if ("PublicKeyCredential" in address.stakeCredential.Inline[0]) {
+      if ("VerificationKeyCredential" in address.stakeCredential.Inline[0]) {
         return lucid.utils.keyHashToCredential(
-          address.stakeCredential.Inline[0].PublicKeyCredential[0],
+          address.stakeCredential.Inline[0].VerificationKeyCredential[0],
         );
       } else {
         return lucid.utils.scriptHashToCredential(
@@ -124,7 +124,7 @@ export function toAddress(address: D.Address, lucid: Lucid): Address {
 }
 
 export function fromAssets(assets: Assets): D.Value {
-  const value = new Map<string, Map<string, bigint>>();
+  const value = new Map() as D.Value;
   if (assets.lovelace) value.set("", new Map([["", assets.lovelace]]));
 
   const units = Object.keys(assets);

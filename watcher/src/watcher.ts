@@ -26,6 +26,7 @@ import {
 import { config } from "./flags.ts";
 import { db } from "./db.ts";
 import * as D from "../../common/contract.types.ts";
+import { NebulaSpend } from "../../contract/src/nebula/plutus.ts";
 
 // deno-lint-ignore no-explicit-any
 function getDatum(tx: TxShelleyCompatible, output: any): Datum | null {
@@ -47,9 +48,9 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
         config.scriptHash
     ) {
       // Check bid
-      const tradeDatum = Data.from<D.TradeDatum>(
+      const tradeDatum = Data.from(
         getDatum(tx, output)!,
-        D.TradeDatum,
+        NebulaSpend.datum,
       );
 
       if (!("Bid" in tradeDatum)) continue;
@@ -124,10 +125,10 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
           },
         }, point);
       } else if (
-        "SpecificSymbolWithConstraints" in bidDetails.requestedOption
+        "SpecificPolicyIdWithConstraints" in bidDetails.requestedOption
       ) {
         const policyId: PolicyId =
-          bidDetails.requestedOption.SpecificSymbolWithConstraints[0];
+          bidDetails.requestedOption.SpecificPolicyIdWithConstraints[0];
         // We only track valid open bids.
         if (
           !config.projects.some((projectPolicyId) =>
@@ -136,11 +137,11 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
         ) continue;
 
         const types =
-          (bidDetails.requestedOption.SpecificSymbolWithConstraints[1]).map((
+          (bidDetails.requestedOption.SpecificPolicyIdWithConstraints[1]).map((
             bytes,
           ) => toText(bytes));
         const traits =
-          (bidDetails.requestedOption.SpecificSymbolWithConstraints[2])?.map((
+          (bidDetails.requestedOption.SpecificPolicyIdWithConstraints[2])?.map((
             trait,
           ) =>
             "Included" in trait
@@ -187,9 +188,9 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
         config.scriptHash
     ) {
       // Check listing
-      const tradeDatum = Data.from<D.TradeDatum>(
+      const tradeDatum = Data.from(
         getDatum(tx, output)!,
-        D.TradeDatum,
+        NebulaSpend.datum,
       );
       if (!("Listing" in tradeDatum)) continue;
 
@@ -274,7 +275,7 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
 
     const action = (() => {
       try {
-        return Data.from<D.TradeAction>(redeemer.redeemer, D.TradeAction);
+        return Data.from(redeemer.redeemer, NebulaSpend.action);
       } catch (_e) {
         return null;
       }
@@ -297,9 +298,9 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
           }
         })();
 
-        const paymentDatum = Data.to<D.PaymentDatum>({
+        const paymentDatum = Data.to({
           outRef: {
-            txHash: { hash: outRef.txHash },
+            transactionId: { hash: outRef.txHash },
             outputIndex: BigInt(outRef.outputIndex),
           },
         }, D.PaymentDatum);
