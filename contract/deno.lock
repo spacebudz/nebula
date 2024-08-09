@@ -1,5 +1,105 @@
 {
-  "version": "2",
+  "version": "3",
+  "packages": {
+    "specifiers": {
+      "npm:@cardano-ogmios/client": "npm:@cardano-ogmios/client@6.4.0_ws@7.5.9",
+      "npm:@cardano-ogmios/schema": "npm:@cardano-ogmios/schema@6.4.0"
+    },
+    "npm": {
+      "@cardano-ogmios/client@6.4.0_ws@7.5.9": {
+        "integrity": "sha512-LClVy5G3/faEOetA+IGYdNhWI/AKiZ10giSnRUVHZpwCQMDxXDYn8EpBrZKE6MzVv+/Ee+Y+9mVqMah4WtZ8FQ==",
+        "dependencies": {
+          "@cardano-ogmios/schema": "@cardano-ogmios/schema@6.4.0",
+          "@cardanosolutions/json-bigint": "@cardanosolutions/json-bigint@1.0.1",
+          "@types/json-bigint": "@types/json-bigint@1.0.4",
+          "bech32": "bech32@2.0.0",
+          "cross-fetch": "cross-fetch@3.1.8",
+          "fastq": "fastq@1.17.1",
+          "isomorphic-ws": "isomorphic-ws@4.0.1_ws@7.5.9",
+          "nanoid": "nanoid@3.3.7",
+          "ts-custom-error": "ts-custom-error@3.3.1",
+          "ws": "ws@7.5.9"
+        }
+      },
+      "@cardano-ogmios/schema@6.4.0": {
+        "integrity": "sha512-l4qQJtdnyvkBadOuTR3B449txpc4W7gO/3aVYtI1IK1Num4FI2kNFfIj/zJ0V3a3JGg1jaFvN8A9SWPaNPqOSg==",
+        "dependencies": {}
+      },
+      "@cardanosolutions/json-bigint@1.0.1": {
+        "integrity": "sha512-mbYL6jtHqMFCZnTFhmkmoeDzHMBino0gMiGQnOJE7CwzZzkK2HCpH0MTBk+84QDadMEGX7iFt7uB+levm1a+bQ==",
+        "dependencies": {
+          "bignumber.js": "bignumber.js@9.1.2"
+        }
+      },
+      "@types/json-bigint@1.0.4": {
+        "integrity": "sha512-ydHooXLbOmxBbubnA7Eh+RpBzuaIiQjh8WGJYQB50JFGFrdxW7JzVlyEV7fAXw0T2sqJ1ysTneJbiyNLqZRAag==",
+        "dependencies": {}
+      },
+      "bech32@2.0.0": {
+        "integrity": "sha512-LcknSilhIGatDAsY1ak2I8VtGaHNhgMSYVxFrGLXv+xLHytaKZKcaUJJUE7qmBr7h33o5YQwP55pMI0xmkpJwg==",
+        "dependencies": {}
+      },
+      "bignumber.js@9.1.2": {
+        "integrity": "sha512-2/mKyZH9K85bzOEfhXDBFZTGd1CTs+5IHpeFQo9luiBG7hghdC851Pj2WAhb6E3R6b9tZj/XKhbg4fum+Kepug==",
+        "dependencies": {}
+      },
+      "cross-fetch@3.1.8": {
+        "integrity": "sha512-cvA+JwZoU0Xq+h6WkMvAUqPEYy92Obet6UdKLfW60qn99ftItKjB5T+BkyWOFWe2pUyfQ+IJHmpOTznqk1M6Kg==",
+        "dependencies": {
+          "node-fetch": "node-fetch@2.7.0"
+        }
+      },
+      "fastq@1.17.1": {
+        "integrity": "sha512-sRVD3lWVIXWg6By68ZN7vho9a1pQcN/WBFaAAsDDFzlJjvoGx0P8z7V1t72grFJfJhu3YPZBuu25f7Kaw2jN1w==",
+        "dependencies": {
+          "reusify": "reusify@1.0.4"
+        }
+      },
+      "isomorphic-ws@4.0.1_ws@7.5.9": {
+        "integrity": "sha512-BhBvN2MBpWTaSHdWRb/bwdZJ1WaehQ2L1KngkCkfLUGF0mAWAT1sQUQacEmQ0jXkFw/czDXPNQSL5u2/Krsz1w==",
+        "dependencies": {
+          "ws": "ws@7.5.9"
+        }
+      },
+      "nanoid@3.3.7": {
+        "integrity": "sha512-eSRppjcPIatRIMC1U6UngP8XFcz8MQWGQdt1MTBQ7NaAmvXDfvNxbvWV3x2y6CdEUciCSsDHDQZbhYaB8QEo2g==",
+        "dependencies": {}
+      },
+      "node-fetch@2.7.0": {
+        "integrity": "sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==",
+        "dependencies": {
+          "whatwg-url": "whatwg-url@5.0.0"
+        }
+      },
+      "reusify@1.0.4": {
+        "integrity": "sha512-U9nH88a3fc/ekCF1l0/UP1IosiuIjyTh7hBvXVMHYgVcfGvt897Xguj2UOLDeI5BG2m7/uwyaLVT6fbtCwTyzw==",
+        "dependencies": {}
+      },
+      "tr46@0.0.3": {
+        "integrity": "sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==",
+        "dependencies": {}
+      },
+      "ts-custom-error@3.3.1": {
+        "integrity": "sha512-5OX1tzOjxWEgsr/YEUWSuPrQ00deKLh6D7OTWcvNHm12/7QPyRh8SYpyWvA4IZv8H/+GQWQEh/kwo95Q9OVW1A==",
+        "dependencies": {}
+      },
+      "webidl-conversions@3.0.1": {
+        "integrity": "sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==",
+        "dependencies": {}
+      },
+      "whatwg-url@5.0.0": {
+        "integrity": "sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==",
+        "dependencies": {
+          "tr46": "tr46@0.0.3",
+          "webidl-conversions": "webidl-conversions@3.0.1"
+        }
+      },
+      "ws@7.5.9": {
+        "integrity": "sha512-F+P9Jil7UiSKSkppIiD94dN07AwvFixvLIj1Og1Rl9GGMuNipJnV9JzjD6XuqmAeiswGvUmNLjr5cFuXwNS77Q==",
+        "dependencies": {}
+      }
+    }
+  },
   "remote": {
     "https://deno.land/std@0.100.0/encoding/hex.ts": "f952e0727bddb3b2fd2e6889d104eacbd62e92091f540ebd6459317a61932d9b",
     "https://deno.land/std@0.111.0/_util/assert.ts": "2f868145a042a11d5ad0a3c748dcf580add8a0dbc0e876eaa0026303a5488f58",
