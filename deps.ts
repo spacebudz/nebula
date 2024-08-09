@@ -1,11 +1,15 @@
 export * from "https://deno.land/x/lucid@0.10.6/mod.ts";
 export {
-  createClient,
-  toShelleyCompatibleBlock,
-} from "https://raw.githubusercontent.com/spacebudz/denosync/0.1.2/mod.ts";
+  createChainSynchronizationClient,
+  createInteractionContext,
+} from "npm:@cardano-ogmios/client";
 export type {
   Block,
-  BlockShelleyCompatible,
+  BlockPraos,
+  Origin,
   Point,
-  TxShelleyCompatible,
-} from "https://raw.githubusercontent.com/spacebudz/denosync/0.1.2/mod.ts";
+  Signatory,
+  Tip,
+  Transaction,
+  TransactionOutput,
+} from "npm:@cardano-ogmios/schema";
