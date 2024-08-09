@@ -2,12 +2,13 @@ import { DB } from "https://deno.land/x/sqlite@v3.7.0/mod.ts";
 import {
   checkpointToColor,
   fromMergedOutRef,
-  fromMergedPoint,
+  fromMergedPointDB,
   isEmptyString,
   parseJSONSafe,
+  pointToPointDB,
   resolvePath,
   toMergedOutRef,
-  toMergedPoint,
+  toMergedPointDB,
 } from "./utils.ts";
 import {
   BidDB,
@@ -18,9 +19,10 @@ import {
   ListingEventType,
   MarketplaceEvent,
   MarketplaceEventType,
+  PointDB,
   SaleDB,
 } from "./types.ts";
-import { Json, OutRef, Point } from "../../deps.ts";
+import { Json, OutRef } from "../../deps.ts";
 import { config, flags } from "./flags.ts";
 // For syntax highlighting in vscode: forbeslindesay.vscode-sql-template-literal
 function sql(s: TemplateStringsArray): string {
@@ -110,7 +112,7 @@ class MarketplaceDB {
   db: DB;
   changes: number;
 
-  constructor(db: DB, startPoint?: Point) {
+  constructor(db: DB, startPoint?: PointDB) {
     this.db = db;
     this.db.execute(tableCreation);
     this.changes = this.db.totalChanges;
@@ -122,8 +124,8 @@ class MarketplaceDB {
         sql`INSERT INTO checkpoint (id, point, cleanupPoint) VALUES (:id, :point, :cleanupPoint)`,
         {
           id: 0,
-          point: toMergedPoint(startPoint || { hash: "", slot: 0 }),
-          cleanupPoint: toMergedPoint(startPoint || { hash: "", slot: 0 }),
+          point: toMergedPointDB(startPoint || { hash: "", slot: 0 }),
+          cleanupPoint: toMergedPointDB(startPoint || { hash: "", slot: 0 }),
         },
       );
     }
@@ -321,11 +323,11 @@ class MarketplaceDB {
     );
   }
 
-  updateCheckpoint(event: CheckpointType, point: Point) {
+  updateCheckpoint(event: CheckpointType, point: PointDB) {
     this.db.query(
       sql`UPDATE checkpoint SET point = :point WHERE id = 0`,
       {
-        point: toMergedPoint(point),
+        point: toMergedPointDB(point),
       },
     );
     console.log(
@@ -338,11 +340,11 @@ class MarketplaceDB {
     );
   }
 
-  updateCleanupCheckpoint(point: Point) {
+  updateCleanupCheckpoint(point: PointDB) {
     this.db.query(
       sql`UPDATE checkpoint SET cleanupPoint = :cleanupPoint WHERE id = 0`,
       {
-        cleanupPoint: toMergedPoint(point),
+        cleanupPoint: toMergedPointDB(point),
       },
     );
     console.log(
@@ -355,21 +357,21 @@ class MarketplaceDB {
     );
   }
 
-  getCheckpoint(): Point {
+  getCheckpoint(): PointDB {
     const q = this.db.queryEntries<{ point: string }>(
       sql`SELECT point from checkpoint`,
     )[0]
       ?.point;
-    if (q) return fromMergedPoint(q);
+    if (q) return fromMergedPointDB(q);
     throw new Error("No checkpoint found. Maybe DB not initialized yet.");
   }
 
-  getCleanupCheckpoint(): Point {
+  getCleanupCheckpoint(): PointDB {
     const q = this.db.queryEntries<{ cleanupPoint: string }>(
       sql`SELECT cleanupPoint from checkpoint`,
     )[0]
       ?.cleanupPoint;
-    if (q) return fromMergedPoint(q);
+    if (q) return fromMergedPointDB(q);
     throw new Error("No checkpoint found. Maybe DB not initialized yet.");
   }
 
@@ -405,7 +407,7 @@ class MarketplaceDB {
     this.db.query(sql`COMMIT`);
   }
 
-  rollbackDatabase(point: Point) {
+  rollbackDatabase(point: PointDB) {
     this.db.query(sql`BEGIN`);
 
     this.db.query(
@@ -444,7 +446,7 @@ class MarketplaceDB {
     this.db.query(sql`COMMIT`);
   }
 
-  registerEvent(event: MarketplaceEvent, point: Point) {
+  registerEvent(event: MarketplaceEvent, point: PointDB) {
     this.db.query(
       sql`INSERT INTO events (slot, headerHash, eventType, eventData) VALUES (:slot, :hash, :eventType, :eventData)`,
       {
@@ -458,7 +460,7 @@ class MarketplaceDB {
 
   /** Events will be stored in a buffer and only be triggered after x block confirmations. They will be deleted in case of rollbacks. */
   triggerEvents(
-    point: Point,
+    point: PointDB,
     cb: (events: MarketplaceEvent[]) => unknown,
     confirmations = 5,
   ) {
@@ -495,5 +497,5 @@ class MarketplaceDB {
 
 export const db = new MarketplaceDB(
   new DB(resolvePath(flags.database).pathname),
-  config.startPoint,
+  config.startPoint && pointToPointDB(config.startPoint),
 );

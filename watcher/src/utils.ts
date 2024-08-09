@@ -1,5 +1,5 @@
-import { Assets, Json, OutRef, Point } from "../../deps.ts";
-import { AssetsWithNumber, CheckpointType } from "./types.ts";
+import { Assets, Json, Origin, OutRef, Point } from "../../deps.ts";
+import { AssetsWithNumber, CheckpointType, PointDB } from "./types.ts";
 import {
   isAbsolute,
   toFileUrl,
@@ -21,7 +21,13 @@ export function fromMergedOutRef(
 }
 
 export function toMergedPoint(
-  { hash, slot }: Point,
+  { id, slot }: Point,
+): string {
+  return id + slot;
+}
+
+export function toMergedPointDB(
+  { hash, slot }: PointDB,
 ): string {
   return hash + slot;
 }
@@ -30,9 +36,23 @@ export function fromMergedPoint(
   mergedPoint: string,
 ): Point {
   return {
+    id: mergedPoint.slice(0, 64),
+    slot: parseInt(mergedPoint.slice(64)),
+  };
+}
+
+export function fromMergedPointDB(
+  mergedPoint: string,
+): PointDB {
+  return {
     hash: mergedPoint.slice(0, 64),
     slot: parseInt(mergedPoint.slice(64)),
   };
+}
+
+export function pointToPointDB(point: Point | Origin): PointDB {
+  if (typeof point === "string") return { hash: "", slot: 0 };
+  return { hash: point.id, slot: point.slot };
 }
 
 export function isEmptyString(str: string | null | undefined): boolean {
