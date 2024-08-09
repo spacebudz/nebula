@@ -1,5 +1,5 @@
 import {
-  BlockShelleyCompatible,
+  BlockPraos,
   C,
   Data,
   Datum,
@@ -7,11 +7,12 @@ import {
   fromText,
   OutRef,
   paymentCredentialOf,
-  Point,
   PolicyId,
+  Signatory,
   toLabel,
   toText,
-  TxShelleyCompatible,
+  Transaction,
+  TransactionOutput,
 } from "../../deps.ts";
 import { assetsToAsssetsWithNumber, pipe } from "./utils.ts";
 import { toAssets, toOwner } from "../../common/utils.ts";
@@ -21,6 +22,7 @@ import {
   CancelBidEventType,
   CancelListingEventType,
   MarketplaceEventType,
+  PointDB,
   SellEventType,
 } from "./types.ts";
 import { config } from "./flags.ts";
@@ -28,14 +30,13 @@ import { db } from "./db.ts";
 import * as D from "../../common/contract.types.ts";
 import { NebulaSpend } from "../../contract/src/nebula/plutus.ts";
 
-// deno-lint-ignore no-explicit-any
-function getDatum(tx: TxShelleyCompatible, output: any): Datum | null {
+function getDatum(tx: Transaction, output: TransactionOutput): Datum | null {
   if (output.datum) return output.datum;
-  return tx.witness.datums?.[output.datumHash] || null;
+  return tx.datums?.[output.datumHash!] || null;
 }
 
-function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
-  for (const [outputIndex, output] of tx.body.outputs.entries()) {
+function watchListingsAndBids(tx: Transaction, point: PointDB) {
+  for (const [outputIndex, output] of tx.outputs.entries()) {
     if (!output.datumHash && !output.datum) continue;
 
     const outRef: OutRef = { txHash: tx.id, outputIndex };
@@ -136,12 +137,12 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
           )
         ) continue;
 
-        const types =
-          (bidDetails.requestedOption.SpecificPolicyIdWithConstraints[1]).map((
+        const types = bidDetails.requestedOption
+          .SpecificPolicyIdWithConstraints[1].map((
             bytes,
           ) => toText(bytes));
         const traits =
-          (bidDetails.requestedOption.SpecificPolicyIdWithConstraints[2])?.map((
+          bidDetails.requestedOption.SpecificPolicyIdWithConstraints[2]?.map((
             trait,
           ) =>
             "Included" in trait
@@ -257,25 +258,20 @@ function watchListingsAndBids(tx: TxShelleyCompatible, point: Point) {
   }
 }
 
-function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
-  if (!tx.witness.redeemers) return;
+function watchSalesAndCancellations(tx: Transaction, point: PointDB) {
+  if (!tx.redeemers) return;
 
-  for (const [purpose, redeemer] of Object.entries(tx.witness.redeemers)) {
-    const [tag, index]: [string, number] = pipe(
-      purpose.split(":"),
-      ([tag, index]: [string, string]) => [tag, parseInt(index)],
-    );
-
-    if (tag !== "spend") continue;
+  for (const { redeemer, validator: { purpose, index } } of tx.redeemers) {
+    if (purpose !== "spend") continue;
 
     const outRef: OutRef = {
-      txHash: tx.body.inputs[index].txId,
-      outputIndex: tx.body.inputs[index].index,
+      txHash: tx.inputs[index].transaction.id,
+      outputIndex: tx.inputs[index].index,
     };
 
     const action = (() => {
       try {
-        return Data.from(redeemer.redeemer, NebulaSpend.action);
+        return Data.from(redeemer, NebulaSpend.action);
       } catch (_e) {
         return null;
       }
@@ -306,7 +302,7 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
         }, D.PaymentDatum);
 
         const assets = bid.policyId
-          ? tx.body.outputs.reduce((assets, utxo) => {
+          ? tx.outputs.reduce((assets, utxo) => {
             const asset = Object.entries(utxo!.value.assets || {})
               .find(([unit, _]) =>
                 unit.startsWith(bid.policyId!) &&
@@ -323,11 +319,11 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
          * If there is no vkey signature then we cannot identify the seller. For now we leave it as null/unknown.
          */
         const seller = pipe(
-          Object.keys(tx.witness.signatures),
-          (publicKeys: string[]) =>
-            publicKeys.length <= 0 ? null : C.PublicKey.from_bytes(
-              fromHex(publicKeys[0]),
-            ).hash().to_bech32("addr_vkh"),
+          Object.keys(tx.signatories),
+          (vkeys: Signatory[]) =>
+            vkeys.length <= 0 ? null : C.Vkey.from_bytes(
+              fromHex(vkeys[0].key),
+            ).public_key().hash().to_bech32("addr_vkh"),
         );
 
         db.addSale({
@@ -372,12 +368,13 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
          * If there is no signature then we cannot identify the buyer. For now we leave it as null/unknown.
          * If there is one signature we can precisely identify the buyer.
          */
+
         const buyer = pipe(
-          Object.keys(tx.witness.signatures),
-          (publicKeys: string[]) =>
-            publicKeys.length <= 0 ? null : C.PublicKey.from_bytes(
-              fromHex(publicKeys[0]),
-            ).hash().to_bech32("addr_vkh"),
+          Object.keys(tx.signatories),
+          (vkeys: Signatory[]) =>
+            vkeys.length <= 0 ? null : C.Vkey.from_bytes(
+              fromHex(vkeys[0].key),
+            ).public_key().hash().to_bech32("addr_vkh"),
         );
 
         db.addSale({
@@ -487,9 +484,9 @@ function watchSalesAndCancellations(tx: TxShelleyCompatible, point: Point) {
 
 /** In case of malformed listings/bids we want to make sure the watcher does not go down. */
 function tryWatch(
-  tx: TxShelleyCompatible,
-  point: Point,
-  watcher: (tx: TxShelleyCompatible, point: Point) => unknown,
+  tx: Transaction,
+  point: PointDB,
+  watcher: (tx: Transaction, point: PointDB) => unknown,
 ) {
   try {
     watcher(tx, point);
@@ -498,11 +495,11 @@ function tryWatch(
   }
 }
 
-export function watchBlock(blockShelley: BlockShelleyCompatible) {
-  const transactions = blockShelley.body;
-  const point: Point = {
-    hash: blockShelley.headerHash,
-    slot: blockShelley.header.slot,
+export function watchBlock(block: BlockPraos) {
+  const transactions = block.transactions || [];
+  const point: PointDB = {
+    hash: block.id,
+    slot: block.slot,
   };
   for (const tx of transactions) {
     tryWatch(tx, point, watchSalesAndCancellations);

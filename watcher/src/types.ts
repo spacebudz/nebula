@@ -19,6 +19,8 @@ export type Config = {
   startPoint?: Point;
 };
 
+export type PointDB = { hash: string; slot: number };
+
 /**
  * We cannot and do not need to store asset quantities in bigint format.
  * Number is sufficient enough and can easily be converted from and to json and stored in the sqlite database.
@@ -62,7 +64,7 @@ export type CheckpointType =
 
 export type ListingDB = {
   outRef: OutRef;
-  point: Point;
+  point: PointDB;
   type: ListingEventType;
   assets: AssetsWithNumber;
   /** Bech32 payment credential */
@@ -75,7 +77,7 @@ export type ListingDB = {
 
 export type BidDB = {
   outRef: OutRef;
-  point: Point;
+  point: PointDB;
   type: BidEventType;
   assets?: AssetsWithNumber | null;
   policyId?: PolicyId | null;
@@ -89,7 +91,7 @@ export type BidDB = {
 
 export type SaleDB = {
   txHash: TxHash;
-  point: Point;
+  point: PointDB;
   type: BuyEventType | SellEventType;
   assets: AssetsWithNumber;
   /** We can savely use number here and don't need bigint. */
@@ -103,7 +105,7 @@ export type SaleDB = {
 
 export type CancellationDB = {
   txHash: TxHash;
-  point: Point;
+  point: PointDB;
   type: CancelListingEventType | CancelBidEventType;
   assets?: AssetsWithNumber | null;
   policyId?: PolicyId | null;
