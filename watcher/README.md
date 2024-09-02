@@ -8,7 +8,7 @@ marketplace (Right now it's very basic, but it will be extended over time).
 
 ## Requirements
 
-- [Ogmios](https://ogmios.dev/) $\ge$ Version 5.5.7
+- [Ogmios](https://ogmios.dev/) $\ge$ Version 6.5.0
 
 ## SQL Schema
 
