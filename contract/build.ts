@@ -1,5 +1,5 @@
-import { build, emptyDir } from "https://deno.land/x/dnt@0.30.0/mod.ts";
-import packageInfo from "../package.json" assert { type: "json" };
+import { build, emptyDir } from "https://deno.land/x/dnt@0.40.0/mod.ts";
+import packageInfo from "../package.json" with { type: "json" };
 
 function currentPath(path: string): string {
   return new URL(path, import.meta.url).pathname;
@@ -25,9 +25,9 @@ await build({
     type: "module",
   },
   mappings: {
-    "https://deno.land/x/lucid@0.10.6/mod.ts": {
+    "https://deno.land/x/lucid@0.10.9/mod.ts": {
       name: "lucid-cardano",
-      version: "0.10.6",
+      version: "0.10.9",
       peerDependency: true,
     },
   },

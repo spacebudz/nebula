@@ -1,7 +1,7 @@
 {
   "tasks": {
     "build": "deno run -A build.ts",
-    "build:contract": "cd src/nebula && aiken build && deno run -A https://deno.land/x/lucid@0.10.6/blueprint.ts",
+    "build:contract": "cd src/nebula && aiken build && deno run -A https://deno.land/x/lucid@0.10.9/blueprint.ts",
     "test": "deno test --allow-env --allow-read --allow-net tests",
     "test:contract": "cd src/nebula && aiken check"
   },
