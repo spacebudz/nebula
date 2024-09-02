@@ -21,7 +21,7 @@ await build({
     engines: {
       node: ">=14",
     },
-    main: "./esm/mod.js",
+    main: "./esm/contract/mod.js",
     type: "module",
   },
   mappings: {
