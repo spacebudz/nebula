@@ -42,9 +42,7 @@ function watchListingsAndBids(tx: Transaction, point: PointDB) {
     const outRef: OutRef = { txHash: tx.id, outputIndex };
 
     if (
-      Object.keys(output.value.assets || {}).find((unit) =>
-        unit.startsWith(config.bidPolicyId)
-      ) &&
+      Boolean(output.value[config.bidPolicyId]) &&
       paymentCredentialOf(output.address).hash ===
         config.scriptHash
     ) {
@@ -60,15 +58,21 @@ function watchListingsAndBids(tx: Transaction, point: PointDB) {
       const owner = toOwner({
         data: bidDetails.owner,
       });
-      const lovelace = parseInt(output.value.coins.toString());
+      const lovelace = parseInt(output.value.ada.lovelace.toString());
 
-      const addBidAssets: AssetsWithNumber = Object.fromEntries(
-        Object.entries(output.value.assets!).filter(([unit, _]) =>
-          !unit.startsWith(config.bidPolicyId)
-        ).map((
-          [unit, quantity],
-        ) => [unit.replace(".", ""), Number(quantity)]),
-      );
+      const addBidAssets: AssetsWithNumber = Object.entries(output.value)
+        .filter((
+          [policyId, _],
+        ) => policyId !== config.bidPolicyId || policyId !== "ada")
+        .reduce(
+          (acc, [policyId, assets]) => {
+            for (const [name, quantity] of Object.entries(assets)) {
+              acc[policyId + name] = Number(quantity);
+            }
+            return acc;
+          },
+          {} as AssetsWithNumber,
+        );
 
       // We only track valid addBidAssets. We allow combinations of whitelisted project policy ids.
       if (
@@ -180,10 +184,8 @@ function watchListingsAndBids(tx: Transaction, point: PointDB) {
       }
       db.updateCheckpoint("Bid", point);
     } else if (
-      Object.keys(output.value.assets || {}).find((unit) =>
-        config.projects.some((projectPolicyId) =>
-          unit.startsWith(projectPolicyId)
-        )
+      config.projects.some((projectPolicyId) =>
+        Boolean(output.value[projectPolicyId])
       ) &&
       paymentCredentialOf(output.address).hash ===
         config.scriptHash
@@ -197,15 +199,18 @@ function watchListingsAndBids(tx: Transaction, point: PointDB) {
 
       const listingDetails = tradeDatum.Listing[0];
 
-      const assets: AssetsWithNumber = assetsToAsssetsWithNumber(
-        Object.fromEntries(
-          Object.entries(output.value.assets!).map((
-            [unit, quantity],
-          ) => [unit.replace(".", ""), quantity] as [string, bigint]).filter((
-            [unit, _],
-          ) => !unit.endsWith(toLabel(2) + fromText("ScriptOwner"))),
-        ),
-      );
+      const assets: AssetsWithNumber = Object.entries(output.value)
+        .filter(([policyId, _]) => policyId !== "ada")
+        .reduce(
+          (acc, [policyId, assets]) => {
+            for (const [name, quantity] of Object.entries(assets)) {
+              if (name.endsWith(toLabel(2) + fromText("ScriptOwner"))) continue;
+              acc[policyId + name] = Number(quantity);
+            }
+            return acc;
+          },
+          {} as AssetsWithNumber,
+        );
 
       const units = Object.keys(assets);
 
@@ -302,17 +307,14 @@ function watchSalesAndCancellations(tx: Transaction, point: PointDB) {
         }, D.PaymentDatum);
 
         const assets = bid.policyId
-          ? tx.outputs.reduce((assets, utxo) => {
-            const asset = Object.entries(utxo!.value.assets || {})
-              .find(([unit, _]) =>
-                unit.startsWith(bid.policyId!) &&
-                utxo!.value.assets![unit] > 0 &&
-                utxo.datum === paymentDatum
-              );
-            return asset
-              ? { [asset[0].replace(".", "")]: Number(asset[1]) }
-              : assets;
-          }, bid.assets)
+          ? tx.outputs.reduce((acc, utxo) => {
+            const assets = utxo.value[bid.policyId!];
+            if (!assets || utxo.datum !== paymentDatum) return acc;
+            for (const [name, quantity] of Object.entries(assets)) {
+              if (quantity > 0n) acc[bid.policyId! + name] = Number(quantity);
+            }
+            return acc;
+          }, bid.assets || {})
           : bid.assets;
 
         /**
