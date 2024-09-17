@@ -13,7 +13,7 @@ import {
   Transaction,
   TransactionOutput,
 } from "../../deps.ts";
-import { assetsToAsssetsWithNumber, pipe } from "./utils.ts";
+import { assetsToAsssetsWithNumber } from "./utils.ts";
 import { toAssets, toOwner } from "../../common/utils.ts";
 import {
   AssetsWithNumber,
