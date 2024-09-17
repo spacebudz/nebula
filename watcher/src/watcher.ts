@@ -8,7 +8,6 @@ import {
   OutRef,
   paymentCredentialOf,
   PolicyId,
-  Signatory,
   toLabel,
   toText,
   Transaction,
@@ -320,13 +319,12 @@ function watchSalesAndCancellations(tx: Transaction, point: PointDB) {
         /**
          * If there is no vkey signature then we cannot identify the seller. For now we leave it as null/unknown.
          */
-        const seller = pipe(
-          Object.keys(tx.signatories),
-          (vkeys: Signatory[]) =>
-            vkeys.length <= 0 ? null : C.Vkey.from_bytes(
-              fromHex(vkeys[0].key),
-            ).public_key().hash().to_bech32("addr_vkh"),
-        );
+        const seller = tx.signatories
+          .map(({ key }) =>
+            C.PublicKey.from_bytes(
+              fromHex(key),
+            ).hash().to_bech32("addr_vkh")
+          )[0] || "";
 
         db.addSale({
           txHash: tx.id,
@@ -370,14 +368,12 @@ function watchSalesAndCancellations(tx: Transaction, point: PointDB) {
          * If there is no signature then we cannot identify the buyer. For now we leave it as null/unknown.
          * If there is one signature we can precisely identify the buyer.
          */
-
-        const buyer = pipe(
-          Object.keys(tx.signatories),
-          (vkeys: Signatory[]) =>
-            vkeys.length <= 0 ? null : C.Vkey.from_bytes(
-              fromHex(vkeys[0].key),
-            ).public_key().hash().to_bech32("addr_vkh"),
-        );
+        const buyer = tx.signatories
+          .map(({ key }) =>
+            C.PublicKey.from_bytes(
+              fromHex(key),
+            ).hash().to_bech32("addr_vkh")
+          )[0] || "";
 
         db.addSale({
           txHash: tx.id,
