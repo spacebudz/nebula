@@ -62,7 +62,7 @@ function watchListingsAndBids(tx: Transaction, point: PointDB) {
       const addBidAssets: AssetsWithNumber = Object.entries(output.value)
         .filter((
           [policyId, _],
-        ) => policyId !== config.bidPolicyId || policyId !== "ada")
+        ) => policyId !== config.bidPolicyId && policyId !== "ada")
         .reduce(
           (acc, [policyId, assets]) => {
             for (const [name, quantity] of Object.entries(assets)) {
