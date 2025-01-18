@@ -2,7 +2,7 @@ import { assertEquals } from "https://deno.land/std@0.145.0/testing/asserts.ts";
 import { Lucid } from "../deps.ts";
 import { fromAddress, fromAssets, toAddress, toAssets } from "./utils.ts";
 
-const lucid = await Lucid.new(undefined, "Preview");
+const lucid = new Lucid({ network: "Preview" });
 
 Deno.test("Address <> PlutusData", () => {
   const address =

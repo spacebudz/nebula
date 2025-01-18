@@ -1,17 +1,15 @@
 import {
   BlockPraos,
-  C,
   Data,
-  Datum,
-  fromHex,
   fromText,
+  Hasher,
   OutRef,
   paymentCredentialOf,
-  PolicyId,
   toLabel,
   toText,
   Transaction,
   TransactionOutput,
+  Utils,
 } from "../../deps.ts";
 import { assetsToAsssetsWithNumber } from "./utils.ts";
 import { toAssets, toOwner } from "../../common/utils.ts";
@@ -29,7 +27,7 @@ import { db } from "./db.ts";
 import * as D from "../../common/contract.types.ts";
 import { NebulaSpend } from "../../contract/src/nebula/plutus.ts";
 
-function getDatum(tx: Transaction, output: TransactionOutput): Datum | null {
+function getDatum(tx: Transaction, output: TransactionOutput): string | null {
   if (output.datum) return output.datum;
   return tx.datums?.[output.datumHash!] || null;
 }
@@ -131,7 +129,7 @@ function watchListingsAndBids(tx: Transaction, point: PointDB) {
       } else if (
         "SpecificPolicyIdWithConstraints" in bidDetails.requestedOption
       ) {
-        const policyId: PolicyId =
+        const policyId =
           bidDetails.requestedOption.SpecificPolicyIdWithConstraints[0];
         // We only track valid open bids.
         if (
@@ -321,9 +319,7 @@ function watchSalesAndCancellations(tx: Transaction, point: PointDB) {
          */
         const seller = tx.signatories
           .map(({ key }) =>
-            C.PublicKey.from_bytes(
-              fromHex(key),
-            ).hash().to_bech32("addr_vkh")
+            Utils.encodeBech32("addr_vkh", Hasher.hashPublicKey(key))
           )[0] || "";
 
         db.addSale({
@@ -370,9 +366,7 @@ function watchSalesAndCancellations(tx: Transaction, point: PointDB) {
          */
         const buyer = tx.signatories
           .map(({ key }) =>
-            C.PublicKey.from_bytes(
-              fromHex(key),
-            ).hash().to_bech32("addr_vkh")
+            Utils.encodeBech32("addr_vkh", Hasher.hashPublicKey(key))
           )[0] || "";
 
         db.addSale({

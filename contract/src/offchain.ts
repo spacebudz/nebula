@@ -1,23 +1,17 @@
 import {
-  Address,
+  Addresses,
   Assets,
   Data,
-  Datum,
   fromText,
   fromUnit,
-  Lovelace,
+  Hasher,
   Lucid,
-  MintingPolicy,
   OutRef,
   paymentCredentialOf,
-  PolicyId,
-  ScriptHash,
-  SpendingValidator,
+  Script,
   toUnit,
   Tx,
-  TxHash,
-  Unit,
-  UTxO,
+  Utxo,
 } from "../../deps.ts";
 import {
   checkVariableFee,
@@ -41,11 +35,11 @@ import { NebulaSpend, OneshotMint } from "./nebula/plutus.ts";
 
 export class Contract {
   lucid: Lucid;
-  tradeValidator: SpendingValidator;
-  tradeHash: ScriptHash;
-  tradeAddress: Address;
-  bidPolicy: MintingPolicy;
-  bidPolicyId: PolicyId;
+  tradeValidator: Script;
+  tradeHash: string;
+  tradeAddress: string;
+  bidPolicy: Script;
+  bidPolicyId: string;
   config: ContractConfig;
   fundProtocol: boolean;
 
@@ -73,9 +67,9 @@ export class Contract {
         : false;
     }
 
-    const protocolKey = this.lucid.utils.getAddressDetails(
+    const protocolKey = Addresses.inspect(
       PROTOCOL_FUND_ADDRESS,
-    ).paymentCredential?.hash!;
+    ).payment!.hash;
 
     if (this.fundProtocol && !protocolKey) throw "Invalid protocol key!";
 
@@ -84,22 +78,25 @@ export class Contract {
       { policyId, assetName: assetName || "" },
     );
 
-    this.tradeHash = lucid.utils.validatorToScriptHash(this.tradeValidator);
-    this.tradeAddress = lucid.utils.credentialToAddress(
-      lucid.utils.scriptHashToCredential(this.tradeHash),
-    );
+    this.tradeHash = Hasher.hashScript(this.tradeValidator);
+    this.tradeAddress = lucid.utils.credentialToAddress({
+      type: "Script",
+      hash: this.tradeHash,
+    });
 
-    this.bidPolicy = lucid.utils.nativeScriptFromJson({
-      type: "any",
+    const bidPolicy = lucid.newScript({
+      type: "Any",
       scripts: [
-        { type: "after", slot: 0 },
-        { type: "sig", keyHash: this.tradeHash },
+        { type: "After", slot: 0 },
+        { type: "Sig", keyHash: this.tradeHash },
       ],
     });
-    this.bidPolicyId = lucid.utils.mintingPolicyToId(this.bidPolicy);
+
+    this.bidPolicy = bidPolicy.script;
+    this.bidPolicyId = bidPolicy.toHash();
   }
 
-  async buy(listingUtxos: UTxO[]): Promise<TxHash> {
+  async buy(listingUtxos: Utxo[]): Promise<string> {
     const buyOrders = (await Promise.all(
       listingUtxos.map((listingUtxo) => this._buy(listingUtxo)),
     ))
@@ -111,11 +108,11 @@ export class Contract {
     const tx = await buyOrders
       .compose(
         this.fundProtocol
-          ? this.lucid.newTx().payToAddress(PROTOCOL_FUND_ADDRESS, {})
+          ? this.lucid.newTx().payTo(PROTOCOL_FUND_ADDRESS, {})
           : null,
-      ).complete();
+      ).commit();
 
-    const txSigned = await tx.sign().complete();
+    const txSigned = await tx.sign().commit();
     return txSigned.submit();
   }
 
@@ -125,8 +122,8 @@ export class Contract {
    * Specify in this case the asset you are willing to sell for this price.
    */
   async sell(
-    sellOptions: { bidUtxo: UTxO; assetName?: string }[],
-  ): Promise<TxHash> {
+    sellOptions: { bidUtxo: Utxo; assetName?: string }[],
+  ): Promise<string> {
     const sellOrders = (await Promise.all(
       sellOptions.map(({ bidUtxo, assetName }) =>
         this._sell(bidUtxo, assetName)
@@ -140,11 +137,11 @@ export class Contract {
     const tx = await sellOrders
       .compose(
         this.fundProtocol
-          ? this.lucid.newTx().payToAddress(PROTOCOL_FUND_ADDRESS, {})
+          ? this.lucid.newTx().payTo(PROTOCOL_FUND_ADDRESS, {})
           : null,
-      ).complete();
+      ).commit();
 
-    const txSigned = await tx.sign().complete();
+    const txSigned = await tx.sign().commit();
     return txSigned.submit();
   }
 
@@ -156,22 +153,22 @@ export class Contract {
    */
   async list(
     assets: NameAndQuantity | AssetName[],
-    lovelace: Lovelace,
-    privateListing?: Address | null,
-  ): Promise<TxHash> {
+    lovelace: bigint,
+    privateListing?: string | null,
+  ): Promise<string> {
     const tx = await this.lucid.newTx()
       .compose(await this._list(assets, lovelace, privateListing))
-      .complete();
+      .commit();
 
-    const txSigned = await tx.sign().complete();
+    const txSigned = await tx.sign().commit();
     return txSigned.submit();
   }
 
   async changeListing(
-    listingUtxo: UTxO,
-    lovelace: Lovelace,
-    privateListing?: Address | null,
-  ): Promise<TxHash> {
+    listingUtxo: Utxo,
+    lovelace: bigint,
+    privateListing?: string | null,
+  ): Promise<string> {
     const tradeDatum = await this.lucid.datumOf(
       listingUtxo,
       NebulaSpend.datum,
@@ -189,11 +186,11 @@ export class Contract {
     const tx = await this.lucid.newTx()
       .compose(await this._cancelListing(listingUtxo))
       .payToContract(listingUtxo.address, {
-        inline: Data.to(tradeDatum, NebulaSpend.datum),
+        Inline: Data.to(tradeDatum, NebulaSpend.datum),
       }, listingUtxo.assets)
-      .complete();
+      .commit();
 
-    const txSigned = await tx.sign().complete();
+    const txSigned = await tx.sign().commit();
     return txSigned.submit();
   }
 
@@ -205,52 +202,52 @@ export class Contract {
    */
   async bid(
     assets: NameAndQuantity | AssetName[],
-    lovelace: Lovelace,
-  ): Promise<TxHash> {
+    lovelace: bigint,
+  ): Promise<string> {
     const tx = await this.lucid.newTx()
       .compose(await this._bid(assets, lovelace))
-      .complete();
+      .commit();
 
-    const txSigned = await tx.sign().complete();
+    const txSigned = await tx.sign().commit();
     return txSigned.submit();
   }
 
   /** Create a collection offer on the collection. Optionally add constraints. */
   async bidOpen(
-    lovelace: Lovelace,
+    lovelace: bigint,
     constraints?: {
       types?: string[];
       traits?: { negation?: boolean; trait: string }[];
     },
-  ): Promise<TxHash> {
+  ): Promise<string> {
     const tx = await this.lucid.newTx()
       .compose(await this._bidOpen(lovelace, constraints))
-      .complete();
+      .commit();
 
-    const txSigned = await tx.sign().complete();
+    const txSigned = await tx.sign().commit();
     return txSigned.submit();
   }
 
   /** Swap asset(s) for other asset(s). Lovelace could also be included on the offering side. */
   async bidSwap(
     offering: {
-      lovelace?: Lovelace;
+      lovelace?: bigint;
       assetNames: string[];
     },
     requesting: {
       constraints?: Constraints;
       specific?: string[];
     },
-  ): Promise<TxHash> {
+  ): Promise<string> {
     const tx = await this.lucid.newTx()
       .compose(await this._bidSwap(offering, requesting))
-      .complete();
+      .commit();
 
-    const txSigned = await tx.sign().complete();
+    const txSigned = await tx.sign().commit();
     return txSigned.submit();
   }
 
-  async changeBid(bidUtxo: UTxO, lovelace: Lovelace): Promise<TxHash> {
+  async changeBid(bidUtxo: Utxo, lovelace: bigint): Promise<string> {
     const tradeDatum = await this.lucid.datumOf(
       bidUtxo,
       NebulaSpend.datum,
@@ -263,10 +260,10 @@ export class Contract {
       throw new Error("Cannot change swap bids.");
     }
 
-    const owner: Address = toAddress(tradeDatum.Bid[0].owner, this.lucid);
+    const owner = toAddress(tradeDatum.Bid[0].owner, this.lucid);
     const ownerCredential = paymentCredentialOf(owner);
 
-    const address: Address = await this.lucid.wallet.address();
+    const address = await this.lucid.wallet.address();
     const addressCredential = paymentCredentialOf(address);
 
     if (
@@ -282,71 +279,71 @@ export class Contract {
       [bidUtxo],
       Data.to("Cancel", NebulaSpend.action),
     ).payToContract(bidUtxo.address, {
-      inline: bidUtxo.datum!,
+      Inline: bidUtxo.datum!,
     }, { ...bidUtxo.assets, lovelace })
       .compose(
         ownerCredential.type === "Key"
-          ? this.lucid.newTx().addSignerKey(ownerCredential.hash)
+          ? this.lucid.newTx().addSigner(ownerCredential.hash)
           : null,
       )
       .compose(
         refScripts.trade
           ? this.lucid.newTx().readFrom([refScripts.trade])
-          : this.lucid.newTx().attachSpendingValidator(this.tradeValidator),
+          : this.lucid.newTx().attachScript(this.tradeValidator),
       )
-      .complete();
+      .commit();
 
-    const txSigned = await tx.sign().complete();
+    const txSigned = await tx.sign().commit();
     return txSigned.submit();
   }
 
-  async cancelListing(listingUtxo: UTxO): Promise<TxHash> {
+  async cancelListing(listingUtxo: Utxo): Promise<string> {
     const tx = await this.lucid.newTx().compose(
       await this._cancelListing(listingUtxo),
     )
-      .complete();
+      .commit();
 
-    const txSigned = await tx.sign().complete();
+    const txSigned = await tx.sign().commit();
     return txSigned.submit();
   }
 
-  async cancelBid(bidUtxo: UTxO): Promise<TxHash> {
+  async cancelBid(bidUtxo: Utxo): Promise<string> {
     const tx = await this.lucid.newTx().compose(await this._cancelBid(bidUtxo))
-      .complete();
+      .commit();
 
-    const txSigned = await tx.sign().complete();
+    const txSigned = await tx.sign().commit();
     return txSigned.submit();
   }
 
   async cancelListingAndSell(
-    listingUtxo: UTxO,
-    bidUtxo: UTxO,
+    listingUtxo: Utxo,
+    bidUtxo: Utxo,
     assetName?: string,
-  ): Promise<TxHash> {
+  ): Promise<string> {
     const tx = await this.lucid.newTx()
       .compose(await this._cancelListing(listingUtxo))
       .compose(await this._sell(bidUtxo, assetName))
-      .complete();
+      .commit();
 
-    const txSigned = await tx.sign().complete();
+    const txSigned = await tx.sign().commit();
     return txSigned.submit();
   }
 
   async cancelBidAndBuy(
-    bidUtxo: UTxO,
-    listingUtxo: UTxO,
-  ): Promise<TxHash> {
+    bidUtxo: Utxo,
+    listingUtxo: Utxo,
+  ): Promise<string> {
     const tx = await this.lucid.newTx()
       .compose(await this._cancelBid(bidUtxo))
       .compose(await this._buy(listingUtxo))
-      .complete();
+      .commit();
 
-    const txSigned = await tx.sign().complete();
+    const txSigned = await tx.sign().commit();
     return txSigned.submit();
   }
 
   /** Get all listings and bids. If there are a lot of UTxOs it is recommended using an indexer (Nebula Watcher) instead. */
-  async getAllListingsAndBids(): Promise<UTxO[]> {
+  async getAllListingsAndBids(): Promise<Utxo[]> {
     const utxos = await this.lucid.utxosAt(
       paymentCredentialOf(this.tradeAddress),
     );
@@ -362,13 +359,13 @@ export class Contract {
   }
 
   /** Get a specific listing or bid. */
-  async getListingOrBid(outRef: OutRef): Promise<UTxO | null> {
+  async getListingOrBid(outRef: OutRef): Promise<Utxo | null> {
     const [utxo] = await this.lucid.utxosByOutRef([outRef]);
     return utxo || null;
   }
 
   /** Return the current listings for a specific asset sorted in ascending order by price. */
-  async getListings(assetName: string): Promise<UTxO[]> {
+  async getListings(assetName: string): Promise<Utxo[]> {
     return (await this.lucid.utxosAtWithUnit(
       paymentCredentialOf(this.tradeAddress),
       toUnit(
@@ -391,7 +388,7 @@ export class Contract {
    */
   async getBids(
     option: "Bundle" | "Open" | "Swap" | { assetName: string },
-  ): Promise<UTxO[]> {
+  ): Promise<Utxo[]> {
     const bidAssetName = (() => {
       if (option === "Open") return fromText("BidOpen");
       if (option === "Swap") return fromText("BidSwap");
@@ -423,16 +420,16 @@ export class Contract {
   static async createRoyalty(
     lucid: Lucid,
     royaltyRecipients: RoyaltyRecipient[],
-    owner: Address,
-  ): Promise<{ txHash: TxHash; royaltyToken: Unit }> {
-    const ownerKeyHash = lucid.utils.getAddressDetails(owner).paymentCredential
+    owner: string,
+  ): Promise<{ txHash: string; royaltyToken: string }> {
+    const ownerKeyHash = Addresses.inspect(owner).payment
       ?.hash!;
 
-    const ownersScript = lucid.utils.nativeScriptFromJson({
-      type: "sig",
+    const ownersScript = lucid.newScript({
+      type: "Sig",
       keyHash: ownerKeyHash,
     });
-    const ownersAddress = lucid.utils.validatorToAddress(ownersScript);
+    const ownersAddress = ownersScript.toAddress();
 
     const [utxo] = await lucid.wallet.getUtxos();
 
@@ -441,7 +438,7 @@ export class Contract {
       outputIndex: BigInt(utxo.outputIndex),
     });
 
-    const royaltyPolicyId = lucid.utils.mintingPolicyToId(
+    const royaltyPolicyId = Hasher.hashScript(
       royaltyMintingPolicy,
     );
 
@@ -465,19 +462,19 @@ export class Contract {
     };
 
     const tx = await lucid.newTx()
-      .collectFrom([utxo], Data.void())
-      .mintAssets({
+      .collectFrom([utxo])
+      .mint({
         [royaltyUnit]: 1n,
       }, Data.void())
-      .payToAddressWithData(
+      .payToWithData(
         ownersAddress,
-        { inline: Data.to(royaltyInfo, D.RoyaltyInfo) },
+        { Inline: Data.to(royaltyInfo, D.RoyaltyInfo) },
         { [royaltyUnit]: 1n },
       )
-      .attachMintingPolicy(royaltyMintingPolicy)
-      .complete();
+      .attachScript(royaltyMintingPolicy)
+      .commit();
 
-    const txSigned = await tx.sign().complete();
+    const txSigned = await tx.sign().commit();
 
     console.log("\n💰 Royalty Token:", royaltyUnit);
     console.log(
@@ -488,7 +485,7 @@ export class Contract {
   }
 
   /** Deploy necessary scripts to reduce tx costs heavily. */
-  async deployScripts(): Promise<TxHash> {
+  async deployScripts(): Promise<string> {
     if (!this.config.owner) {
       throw new Error("No owner specified. Specify an owner in the config.");
     }
@@ -496,19 +493,19 @@ export class Contract {
     if (credential.type !== "Key") {
       throw new Error("Owner needs to be a public key address.");
     }
-    const ownerScript = this.lucid.utils.nativeScriptFromJson({
-      type: "sig",
+    const ownerScript = this.lucid.newScript({
+      type: "Sig",
       keyHash: credential.hash,
     });
 
-    const ownerAddress = this.lucid.utils.validatorToAddress(ownerScript);
+    const ownerAddress = ownerScript.toAddress();
 
     const tx = await this.lucid.newTx()
-      .payToAddressWithData(ownerAddress, {
+      .payToWithData(ownerAddress, {
         scriptRef: this.tradeValidator,
-      }, {}).complete();
+      }, {}).commit();
 
-    const txSigned = await tx.sign().complete();
+    const txSigned = await tx.sign().commit();
 
     console.log("\n⛓ Deploy Tx Hash:", txSigned.toHash());
     console.log(
@@ -522,7 +519,7 @@ export class Contract {
    *  Remove scripts from UTxOs. Note tx fees for users will increase again.\
    *  Make sure you are the owner of the UTxOs where the scripts are locked at.
    */
-  async removeScripts(): Promise<TxHash> {
+  async removeScripts(): Promise<string> {
     if (!this.config.owner) {
       throw new Error("No owner specified. Specify an owner in the config.");
     }
@@ -536,8 +533,8 @@ export class Contract {
         paymentCredentialOf(await this.lucid.wallet.address()).hash
     ) throw new Error("You are not the owner.");
 
-    const ownerScript = this.lucid.utils.nativeScriptFromJson({
-      type: "sig",
+    const { script } = this.lucid.newScript({
+      type: "Sig",
       keyHash: credential.hash,
     });
 
@@ -546,15 +543,15 @@ export class Contract {
 
     const tx = await this.lucid.newTx()
       .collectFrom([refScripts.trade])
-      .attachSpendingValidator(ownerScript)
-      .complete();
+      .attachScript(script)
+      .commit();
 
-    const txSigned = await tx.sign().complete();
+    const txSigned = await tx.sign().commit();
     return txSigned.submit();
   }
 
   /** Return the datum of the UTxO the royalty token is locked in. */
-  async getRoyaltyInfo(): Promise<{ utxo: UTxO; royaltyInfo: D.RoyaltyInfo }> {
+  async getRoyaltyInfo(): Promise<{ utxo: Utxo; royaltyInfo: D.RoyaltyInfo }> {
     const utxo = await this.lucid.utxoByUnit(
       this.config.royaltyToken,
     );
@@ -577,7 +574,7 @@ export class Contract {
     }));
   }
 
-  async getDeployedScripts(): Promise<{ trade: UTxO | null }> {
+  async getDeployedScripts(): Promise<{ trade: Utxo | null }> {
     if (!this.config.deployHash) return { trade: null };
     const [trade] = await this.lucid.utxosByOutRef([{
       txHash: this.config.deployHash,
@@ -586,11 +583,7 @@ export class Contract {
     return { trade };
   }
 
-  getContractHashes(): {
-    scriptHash: ScriptHash;
-    nftPolicyId: PolicyId;
-    bidPolicyId: PolicyId;
-  } {
+  getContractHashes() {
     return {
       scriptHash: this.tradeHash,
       nftPolicyId: this.config.policyId,
@@ -603,7 +596,7 @@ export class Contract {
    */
   async updateRoyalty(
     royaltyRecipients: RoyaltyRecipient[],
-  ): Promise<TxHash> {
+  ): Promise<string> {
     if (!this.config.owner) {
       throw new Error("No owner specified. Specify an owner in the config.");
     }
@@ -611,11 +604,11 @@ export class Contract {
     if (credential.type !== "Key") {
       throw new Error("Owner needs to be a public key address.");
     }
-    const ownersScript = this.lucid.utils.nativeScriptFromJson({
-      type: "sig",
+    const ownersScript = this.lucid.newScript({
+      type: "Sig",
       keyHash: credential.hash,
     });
-    const ownerAddress = this.lucid.utils.validatorToAddress(ownersScript);
+    const ownerAddress = ownersScript.toAddress();
 
     const utxos = await this.lucid.utxosAt(paymentCredentialOf(ownerAddress));
     const royaltyUtxo = utxos.find((utxo) =>
@@ -637,15 +630,15 @@ export class Contract {
 
     const tx = await this.lucid.newTx()
       .collectFrom([royaltyUtxo])
-      .payToAddressWithData(
+      .payToWithData(
         ownerAddress,
-        { inline: Data.to<D.RoyaltyInfo>(royaltyInfo, D.RoyaltyInfo) },
+        { Inline: Data.to<D.RoyaltyInfo>(royaltyInfo, D.RoyaltyInfo) },
         royaltyUtxo.assets,
       )
-      .attachSpendingValidator(ownersScript)
-      .complete();
+      .attachScript(ownersScript.script)
+      .commit();
 
-    const txSigned = await tx.sign().complete();
+    const txSigned = await tx.sign().commit();
 
     return txSigned.submit();
   }
@@ -658,8 +651,8 @@ export class Contract {
    */
   async _list(
     assets: NameAndQuantity | AssetName[],
-    lovelace: Lovelace,
-    privateListing?: Address | null,
+    lovelace: bigint,
+    privateListing?: string | null,
   ): Promise<Tx> {
     const assetsMap: NameAndQuantity = assets instanceof Array
       ? Object.fromEntries(assets.map((assetName) => [assetName, 1n]))
@@ -668,16 +661,15 @@ export class Contract {
       throw new Error("Needs at least one asset.");
     }
     const ownerAddress = await this.lucid.wallet.address();
-    const { stakeCredential } = this.lucid.utils
-      .getAddressDetails(
-        ownerAddress,
-      );
+    const { delegation } = Addresses.inspect(
+      ownerAddress,
+    );
 
     // We include the stake key of the signer if applicable
-    const tradeAddressWithStake = this.lucid.utils.credentialToAddress(
-      this.lucid.utils.scriptHashToCredential(this.tradeHash),
-      stakeCredential,
-    );
+    const tradeAddressWithStake = this.lucid.utils.credentialToAddress({
+      type: "Script",
+      hash: this.tradeHash,
+    }, delegation);
 
     const tradeDatum: NebulaSpend["datum"] = {
       Listing: [
@@ -698,7 +690,7 @@ export class Contract {
     );
 
     return this.lucid.newTx().payToContract(tradeAddressWithStake, {
-      inline: Data.to(tradeDatum, NebulaSpend.datum),
+      Inline: Data.to(tradeDatum, NebulaSpend.datum),
     }, listingAssets);
   }
 
@@ -710,7 +702,7 @@ export class Contract {
    */
   async _bid(
     assets: NameAndQuantity | AssetName[],
-    lovelace: Lovelace,
+    lovelace: bigint,
   ): Promise<Tx> {
     const assetsMap: NameAndQuantity = assets instanceof Array
       ? Object.fromEntries(assets.map((assetName) => [assetName, 1n]))
@@ -720,7 +712,7 @@ export class Contract {
       throw new Error("Needs at least one asset name.");
     }
     const ownerAddress = await this.lucid.wallet.address();
-    const { stakeCredential } = this.lucid.utils.getAddressDetails(
+    const { delegation } = Addresses.inspect(
       ownerAddress,
     );
     const bidAssets: Assets = Object.fromEntries(
@@ -736,10 +728,10 @@ export class Contract {
       : fromText("Bid") + bidNames[0];
 
     // We include the stake key of the signer
-    const tradeAddressWithStake = this.lucid.utils.credentialToAddress(
-      this.lucid.utils.scriptHashToCredential(this.tradeHash),
-      stakeCredential,
-    );
+    const tradeAddressWithStake = this.lucid.utils.credentialToAddress({
+      type: "Script",
+      hash: this.tradeHash,
+    }, delegation);
 
     const biddingDatum: NebulaSpend["datum"] = {
       Bid: [{
@@ -753,33 +745,33 @@ export class Contract {
     };
 
     return this.lucid.newTx()
-      .mintAssets({
+      .mint({
         [toUnit(this.bidPolicyId, bidAssetName)]: 1n,
       })
       .payToContract(tradeAddressWithStake, {
-        inline: Data.to(biddingDatum, NebulaSpend.datum),
+        Inline: Data.to(biddingDatum, NebulaSpend.datum),
       }, {
         lovelace,
         [toUnit(this.bidPolicyId, bidAssetName)]: 1n,
       })
-      .validFrom(this.lucid.utils.slotToUnixTime(1000))
-      .attachMintingPolicy(this.bidPolicy);
+      .validFrom(this.lucid.utils.slotsToUnixTime(1000))
+      .attachScript(this.bidPolicy);
   }
 
   /** Create a bid on any token within the collection. Optionally add constraints. */
   async _bidOpen(
-    lovelace: Lovelace,
+    lovelace: bigint,
     constraints?: Constraints,
   ): Promise<Tx> {
     const ownerAddress = await this.lucid.wallet.address();
-    const { stakeCredential } = this.lucid.utils.getAddressDetails(
+    const { delegation } = Addresses.inspect(
       ownerAddress,
     );
 
-    const tradeAddressWithStake = this.lucid.utils.credentialToAddress(
-      this.lucid.utils.scriptHashToCredential(this.tradeHash),
-      stakeCredential,
-    );
+    const tradeAddressWithStake = this.lucid.utils.credentialToAddress({
+      type: "Script",
+      hash: this.tradeHash,
+    }, delegation);
 
     const biddingDatum: NebulaSpend["datum"] = {
       Bid: [{
@@ -803,23 +795,23 @@ export class Contract {
     };
 
     return this.lucid.newTx()
-      .mintAssets({
+      .mint({
         [toUnit(this.bidPolicyId, fromText("BidOpen"))]: 1n,
       })
       .payToContract(tradeAddressWithStake, {
-        inline: Data.to(biddingDatum, NebulaSpend.datum),
+        Inline: Data.to(biddingDatum, NebulaSpend.datum),
       }, {
         lovelace,
         [toUnit(this.bidPolicyId, fromText("BidOpen"))]: 1n,
       })
-      .validFrom(this.lucid.utils.slotToUnixTime(1000))
-      .attachMintingPolicy(this.bidPolicy);
+      .validFrom(this.lucid.utils.slotsToUnixTime(1000))
+      .attachScript(this.bidPolicy);
   }
 
   /** Swap asset(s) for another asset(s). Ada could also be included on the offering side. */
   async _bidSwap(
     offering: {
-      lovelace?: Lovelace;
+      lovelace?: bigint;
       assetNames: string[];
     },
     requesting: {
@@ -842,14 +834,14 @@ export class Contract {
       throw new Error("Needs at least one requesting asset name.");
     }
     const ownerAddress = await this.lucid.wallet.address();
-    const { stakeCredential } = this.lucid.utils.getAddressDetails(
+    const { delegation } = Addresses.inspect(
       ownerAddress,
     );
 
-    const tradeAddressWithStake = this.lucid.utils.credentialToAddress(
-      this.lucid.utils.scriptHashToCredential(this.tradeHash),
-      stakeCredential,
-    );
+    const tradeAddressWithStake = this.lucid.utils.credentialToAddress({
+      type: "Script",
+      hash: this.tradeHash,
+    }, delegation);
 
     const biddingDatum: NebulaSpend["datum"] = {
       Bid: [{
@@ -896,20 +888,20 @@ export class Contract {
     if (offering.lovelace) offeringAssets.lovelace = offering.lovelace;
 
     return this.lucid.newTx()
-      .mintAssets({
+      .mint({
         [toUnit(this.bidPolicyId, fromText("BidSwap"))]: 1n,
       })
       .payToContract(tradeAddressWithStake, {
-        inline: Data.to(biddingDatum, NebulaSpend.datum),
+        Inline: Data.to(biddingDatum, NebulaSpend.datum),
       }, {
         ...offeringAssets,
         [toUnit(this.bidPolicyId, fromText("BidSwap"))]: 1n,
       })
-      .validFrom(this.lucid.utils.slotToUnixTime(1000))
-      .attachMintingPolicy(this.bidPolicy);
+      .validFrom(this.lucid.utils.slotsToUnixTime(1000))
+      .attachScript(this.bidPolicy);
   }
 
-  async _cancelListing(listingUtxo: UTxO): Promise<Tx> {
+  async _cancelListing(listingUtxo: Utxo): Promise<Tx> {
     const tradeDatum = await this.lucid.datumOf(
       listingUtxo,
       NebulaSpend.datum,
@@ -917,10 +909,10 @@ export class Contract {
     if (!("Listing" in tradeDatum)) {
       throw new Error("Not a listing UTxO");
     }
-    const owner: Address = toAddress(tradeDatum.Listing[0].owner, this.lucid);
+    const owner = toAddress(tradeDatum.Listing[0].owner, this.lucid);
     const ownerCredential = paymentCredentialOf(owner);
 
-    const address: Address = await this.lucid.wallet.address();
+    const address = await this.lucid.wallet.address();
     const addressCredential = paymentCredentialOf(address);
 
     if (
@@ -939,18 +931,18 @@ export class Contract {
       )
       .compose(
         ownerCredential.type === "Key"
-          ? this.lucid.newTx().addSignerKey(ownerCredential.hash)
+          ? this.lucid.newTx().addSigner(ownerCredential.hash)
           : null,
       )
       .compose(
         refScripts.trade
           ? this.lucid.newTx().readFrom([refScripts.trade])
-          : this.lucid.newTx().attachSpendingValidator(this.tradeValidator),
+          : this.lucid.newTx().attachScript(this.tradeValidator),
       );
   }
 
   async _sell(
-    bidUtxo: UTxO,
+    bidUtxo: Utxo,
     assetName?: string,
   ): Promise<Tx> {
     const tradeDatum = await this.lucid.datumOf(
@@ -969,7 +961,7 @@ export class Contract {
     );
     if (!bidToken) throw new Error("No bid token found.");
 
-    const owner: Address = toAddress(bidDetails.owner, this.lucid);
+    const owner = toAddress(bidDetails.owner, this.lucid);
 
     const { requestedAssets, refNFT } = (() => {
       if ("SpecificValue" in bidDetails.requestedOption) {
@@ -983,7 +975,7 @@ export class Contract {
         "SpecificPolicyIdWithConstraints" in bidDetails.requestedOption &&
         assetName
       ) {
-        const policyId: PolicyId =
+        const policyId =
           bidDetails.requestedOption.SpecificPolicyIdWithConstraints[0];
         const refNFT = toUnit(
           policyId,
@@ -1035,20 +1027,20 @@ export class Contract {
         )).tx,
       )
       .compose(this._payFeeAggregator(lovelace))
-      .payToAddressWithData(owner, {
-        inline: paymentDatum,
+      .payToWithData(owner, {
+        Inline: paymentDatum,
       }, requestedAssets)
-      .mintAssets({ [bidToken]: -1n })
-      .validFrom(this.lucid.utils.slotToUnixTime(1000))
+      .mint({ [bidToken]: -1n })
+      .validFrom(this.lucid.utils.slotsToUnixTime(1000))
       .compose(
         refScripts.trade
           ? this.lucid.newTx().readFrom([refScripts.trade])
-          : this.lucid.newTx().attachSpendingValidator(this.tradeValidator),
+          : this.lucid.newTx().attachScript(this.tradeValidator),
       )
-      .attachMintingPolicy(this.bidPolicy);
+      .attachScript(this.bidPolicy);
   }
 
-  async _cancelBid(bidUtxo: UTxO): Promise<Tx> {
+  async _cancelBid(bidUtxo: Utxo): Promise<Tx> {
     const tradeDatum = await this.lucid.datumOf(
       bidUtxo,
       NebulaSpend.datum,
@@ -1056,10 +1048,10 @@ export class Contract {
     if (!("Bid" in tradeDatum)) {
       throw new Error("Not a bidding UTxO");
     }
-    const owner: Address = toAddress(tradeDatum.Bid[0].owner, this.lucid);
+    const owner = toAddress(tradeDatum.Bid[0].owner, this.lucid);
     const ownerCredential = paymentCredentialOf(owner);
 
-    const address: Address = await this.lucid.wallet.address();
+    const address = await this.lucid.wallet.address();
     const addressCredential = paymentCredentialOf(address);
 
     if (
@@ -1080,22 +1072,22 @@ export class Contract {
         [bidUtxo],
         Data.to("Cancel", NebulaSpend.action),
       )
-      .mintAssets({ [bidToken]: -1n })
-      .validFrom(this.lucid.utils.slotToUnixTime(1000))
+      .mint({ [bidToken]: -1n })
+      .validFrom(this.lucid.utils.slotsToUnixTime(1000))
       .compose(
         ownerCredential.type === "Key"
-          ? this.lucid.newTx().addSignerKey(ownerCredential.hash)
+          ? this.lucid.newTx().addSigner(ownerCredential.hash)
           : null,
       )
       .compose(
         refScripts.trade
           ? this.lucid.newTx().readFrom([refScripts.trade])
-          : this.lucid.newTx().attachSpendingValidator(this.tradeValidator),
+          : this.lucid.newTx().attachScript(this.tradeValidator),
       )
-      .attachMintingPolicy(this.bidPolicy);
+      .attachScript(this.bidPolicy);
   }
 
-  async _buy(listingUtxo: UTxO): Promise<Tx> {
+  async _buy(listingUtxo: Utxo): Promise<Tx> {
     const tradeDatum = await this.lucid.datumOf(
       listingUtxo,
       NebulaSpend.datum,
@@ -1104,8 +1096,8 @@ export class Contract {
       throw new Error("Not a listing UTxO");
     }
 
-    const owner: Address = toAddress(tradeDatum.Listing[0].owner, this.lucid);
-    const requestedLovelace: Lovelace = tradeDatum.Listing[0].requestedLovelace;
+    const owner = toAddress(tradeDatum.Listing[0].owner, this.lucid);
+    const requestedLovelace = tradeDatum.Listing[0].requestedLovelace;
     const privateListing = tradeDatum.Listing[0].privateListing;
 
     const paymentDatum = Data.to<D.PaymentDatum>({
@@ -1128,7 +1120,7 @@ export class Contract {
             requestedLovelace,
             paymentDatum,
           );
-          return tx.payToAddressWithData(owner, { inline: paymentDatum }, {
+          return tx.payToWithData(owner, { Inline: paymentDatum }, {
             lovelace: remainingLovelace,
           });
         })(),
@@ -1144,14 +1136,14 @@ export class Contract {
       .compose(
         refScripts.trade
           ? this.lucid.newTx().readFrom([refScripts.trade])
-          : this.lucid.newTx().attachSpendingValidator(this.tradeValidator),
+          : this.lucid.newTx().attachScript(this.tradeValidator),
       );
   }
 
   private async _payFee(
-    lovelace: Lovelace,
-    paymentDatum: Datum,
-  ): Promise<{ tx: Tx; remainingLovelace: Lovelace }> {
+    lovelace: bigint,
+    paymentDatum: string,
+  ): Promise<{ tx: Tx; remainingLovelace: bigint }> {
     const tx = this.lucid.newTx();
 
     const { utxo, royaltyInfo } = await this.getRoyaltyInfo();
@@ -1160,7 +1152,7 @@ export class Contract {
     const recipients = royaltyInfo.recipients;
 
     for (const recipient of recipients) {
-      const address: Address = toAddress(
+      const address = toAddress(
         recipient.address,
         this.lucid,
       );
@@ -1177,7 +1169,7 @@ export class Contract {
 
       remainingLovelace -= adjustedFee;
 
-      tx.payToAddressWithData(address, { inline: paymentDatum }, {
+      tx.payToWithData(address, { Inline: paymentDatum }, {
         lovelace: adjustedFee,
       });
     }
@@ -1195,7 +1187,7 @@ export class Contract {
    * Recipient address needs to be a public key or native script address.
    */
   private _payFeeAggregator(
-    lovelace: Lovelace,
+    lovelace: bigint,
   ): Tx | null {
     if (this.config.aggregatorFee && this.config.aggregatorFee.length > 0) {
       const tx = this.lucid.newTx();
@@ -1212,7 +1204,7 @@ export class Contract {
           ? maxFee
           : feeToPay;
 
-        tx.payToAddress(recipient.address, {
+        tx.payTo(recipient.address, {
           lovelace: adjustedFee,
         });
       });

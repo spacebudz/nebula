@@ -2,72 +2,62 @@ import { Data } from "../deps.ts";
 
 const PolicyId = Data.Bytes({ minLength: 28, maxLength: 28 });
 
-const CredentialSchema = Data.Enum([
-  Data.Object({
-    VerificationKeyCredential: Data.Tuple([
-      Data.Bytes({ minLength: 28, maxLength: 28 }),
-    ]),
-  }),
-  Data.Object({
-    ScriptCredential: Data.Tuple([
-      Data.Bytes({ minLength: 28, maxLength: 28 }),
-    ]),
-  }),
-]);
-export type Credential = Data.Static<typeof CredentialSchema>;
-export const Credential = CredentialSchema as unknown as Credential;
+export const Credential = Data.Enum({
+  VerificationKeyCredential: [
+    Data.Bytes(28),
+  ],
+}, {
+  ScriptCredential: [
+    Data.Bytes(28),
+  ],
+});
+export type Credential = typeof Credential;
 
-const AddressSchema = Data.Object({
-  paymentCredential: CredentialSchema,
-  stakeCredential: Data.Nullable(Data.Enum([
-    Data.Object({ Inline: Data.Tuple([CredentialSchema]) }),
-    Data.Object({
+export const Address = Data.Object({
+  paymentCredential: Credential,
+  stakeCredential: Data.Nullable(Data.Enum(
+    { Inline: [Credential] },
+    {
       Pointer: Data.Object({
         slotNumber: Data.Integer(),
         transactionIndex: Data.Integer(),
         certificateIndex: Data.Integer(),
       }),
-    }),
-  ])),
+    },
+  )),
 });
-export type Address = Data.Static<typeof AddressSchema>;
-export const Address = AddressSchema as unknown as Address;
+export type Address = typeof Address;
 
 export const Value = Data.Map(
   PolicyId,
   Data.Map(Data.Bytes(), Data.Integer()),
 );
-export type Value = Data.Static<typeof Value>;
+export type Value = typeof Value;
 
-const OutRefSchema = Data.Object({
+export const OutRef = Data.Object({
   transactionId: Data.Object({
-    hash: Data.Bytes({ minLength: 32, maxLength: 32 }),
+    hash: Data.Bytes(32),
   }),
   outputIndex: Data.Integer(),
 });
-export type OutRef = Data.Static<typeof OutRefSchema>;
-export const OutRef = OutRefSchema as unknown as OutRef;
+export type OutRef = typeof OutRef;
 
-const RoyaltyRecipientSchmema = Data.Object({
-  address: AddressSchema,
-  fee: Data.Integer({ minimum: 1 }),
+export const RoyaltyRecipient = Data.Object({
+  address: Address,
+  fee: Data.Integer(),
   minFee: Data.Nullable(Data.Integer()),
   maxFee: Data.Nullable(Data.Integer()),
 });
-export type RoyaltyRecipient = Data.Static<typeof RoyaltyRecipientSchmema>;
-export const RoyaltyRecipient =
-  RoyaltyRecipientSchmema as unknown as RoyaltyRecipient;
+export type RoyaltyRecipient = typeof RoyaltyRecipient;
 
-const RoyaltyInfoSchema = Data.Object({
-  recipients: Data.Array(RoyaltyRecipientSchmema),
-  version: Data.Integer({ minimum: 1, maximum: 1 }),
+export const RoyaltyInfo = Data.Object({
+  recipients: Data.Array(RoyaltyRecipient),
+  version: Data.Integer(),
   extra: Data.Any(),
 });
-export type RoyaltyInfo = Data.Static<typeof RoyaltyInfoSchema>;
-export const RoyaltyInfo = RoyaltyInfoSchema as unknown as RoyaltyInfo;
+export type RoyaltyInfo = typeof RoyaltyInfo;
 
-const PaymentDatumSchema = Data.Object({
-  outRef: OutRefSchema,
+export const PaymentDatum = Data.Object({
+  outRef: OutRef,
 });
-export type PaymentDatum = Data.Static<typeof PaymentDatumSchema>;
-export const PaymentDatum = PaymentDatumSchema as unknown as PaymentDatum;
+export type PaymentDatum = typeof PaymentDatum;

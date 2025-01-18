@@ -1,22 +1,20 @@
-import { Address, Lovelace, PolicyId, TxHash, Unit } from "../../deps.ts";
-
 export type ContractConfig = {
-  royaltyToken: Unit;
-  policyId: PolicyId;
+  royaltyToken: string;
+  policyId: string;
   fundProtocol?: boolean;
-  owner?: Address;
-  deployHash?: TxHash;
+  owner?: string;
+  deployHash?: string;
   aggregatorFee?: RoyaltyRecipient[];
 };
 
 export type RoyaltyRecipient = {
-  address: Address;
+  address: string;
   /** Variable fee. e.g.: 0.04 (4%) */
   fee: number;
   /** Optionally set a minimum absolute fee. */
-  minFee?: Lovelace | null;
+  minFee?: bigint | null;
   /** Optionally set a maximum absolute fee. */
-  maxFee?: Lovelace | null;
+  maxFee?: bigint | null;
 };
 
 export type Constraints = {
