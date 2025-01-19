@@ -3,7 +3,7 @@ import {
   applyParamsToScript,
   Data,
   Script,
-} from "https://raw.githubusercontent.com/spacebudz/lucid/6bc52c8da73599d741b3099d8b7756713b9522c2/mod.ts";
+} from "https://raw.githubusercontent.com/spacebudz/lucid/6184ce113dac1ea8fbf82a955c2e125f9c81372b/mod.ts";
 
 export type ByteArray = string;
 export type Int = bigint;

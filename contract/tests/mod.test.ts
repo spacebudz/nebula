@@ -277,6 +277,7 @@ Deno.test("Collection offer and sell", async () => {
     }),
   );
   const [bid] = await contract.getBids("Open");
+  console.log(bid);
   try {
     await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
       await contract.sell([{ bidUtxo: bid, assetName: idToBud(25) }]),
