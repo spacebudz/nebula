@@ -1014,7 +1014,7 @@ export class Contract {
       .compose(
         refNFT
           ? await (async () => {
-            const refUtxo = await this.lucid.utxoByUnit(refNFT!);
+            const refUtxo = await this.lucid.utxoByUnit(refNFT);
             if (!refUtxo) throw new Error("This NFT doesn't support CIP-0068");
             return this.lucid.newTx().readFrom([refUtxo]);
           })()
