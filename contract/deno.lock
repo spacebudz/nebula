@@ -1,8 +1,26 @@
 {
   "version": "4",
   "specifiers": {
+    "jsr:@spacebudz/lucid@0.20.7": "0.20.7",
+    "jsr:@std/bytes@1.0.4": "1.0.4",
+    "jsr:@std/encoding@1.0.5": "1.0.5",
     "npm:@cardano-ogmios/client@*": "6.4.0_ws@7.5.9",
     "npm:@cardano-ogmios/schema@*": "6.4.0"
+  },
+  "jsr": {
+    "@spacebudz/lucid@0.20.7": {
+      "integrity": "5825f2f5f5617ca9260243bd71c6488030db2e053506250e15fc648e6f4d1375",
+      "dependencies": [
+        "jsr:@std/bytes",
+        "jsr:@std/encoding"
+      ]
+    },
+    "@std/bytes@1.0.4": {
+      "integrity": "11a0debe522707c95c7b7ef89b478c13fb1583a7cfb9a85674cd2cc2e3a28abc"
+    },
+    "@std/encoding@1.0.5": {
+      "integrity": "ecf363d4fc25bd85bd915ff6733a7e79b67e0e7806334af15f4645c569fefc04"
+    }
   },
   "npm": {
     "@cardano-ogmios/client@6.4.0_ws@7.5.9": {
@@ -943,6 +961,37 @@
     "https://raw.githubusercontent.com/spacebudz/lucid/118e3558ee7b558b92e65a868fa73cde5bb3d8d9/src/utils/mod.ts": "f4cc15391fd5484050038bbb2a7a326017062034b94f85e0ab5f2d2c5ad790e3",
     "https://raw.githubusercontent.com/spacebudz/lucid/118e3558ee7b558b92e65a868fa73cde5bb3d8d9/src/utils/script_utility.ts": "8331cac66dea9288617c1fd45ce8aab1a2fee309160888b46cdfb3a1eacbc0ff",
     "https://raw.githubusercontent.com/spacebudz/lucid/118e3558ee7b558b92e65a868fa73cde5bb3d8d9/src/utils/utils.ts": "fbd0249267ffcfa1488146b8a3263f5f44b1047e377716d1564dc02cb03245a5",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/deno.json": "2c2c954ac0a63b585b2ed595ff18d296bbe738eabd55bc4ac87e9fd3cd51410b",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/mod.ts": "9473507398048cb24dbb37b3a220777106c69c28d573898648deb2bb84a7e131",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/core/core.ts": "c660358396bf3d33259521ac13c849203231409f78e46eb69a4bfb8f5b6ae813",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/core/libs/lucid_core/pkg/lucid_core.js": "312f3e1d429d839f69c5d44a21fba5441b698e43c192c8c5b539f19e25a81719",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/core/libs/lucid_core/pkg/lucid_core_bg.js": "74c2364f3e3af68edba9b0c51e26dfc945a26da8c64bb3ebcf43f58fd68f014f",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/core/libs/lucid_core/pkg/lucid_core_bg.wasm": "239e83f39f381fb9cc7fe696b92f0ea8052be416933862596926febc796eaf89",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/core/libs/message_signing/pkg/message_signing.js": "a661124a45885c7995aa2b07d366dd2afaccb4708c32158c71be9ff1532df9d7",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/core/libs/message_signing/pkg/message_signing_bg.js": "532c00979453ef78c4ac29e1df17e86ea84d487896519d177235b538564f7f67",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/core/libs/message_signing/pkg/message_signing_bg.wasm": "7fb0744bd54b66709dd4c16ae483569d6f44c5aa4ea1e52b88f300e4ceb43f76",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/core/mod.ts": "0b261279ce7e0476f18f1d2aa543b9b619cfd12425355b2e5841ce621ae7a9ac",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/core/types.ts": "c4d5eae11b921c2ef6f030b376d8602ba890086fd5287ec295958653d844bfec",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/lucid/lucid.ts": "d43a9c2f10c79d5ac15cb8bc1dc65b29a62bef42482ab6fc041ebd995e47588d",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/lucid/message.ts": "a20f2d7003d39bd997ad917d788ed88771928a559a11171cc16a44353396f46a",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/lucid/mod.ts": "a7db947beb0406eba04d87670448c7f34cd5a139c423be94ad81aad51798f9ab",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/lucid/tx.ts": "25edc61be20373f24984f3c0030ff632180a859201da786d748a8f8a4141a3b9",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/lucid/tx_complete.ts": "bca4c09df5cdb60f8d78980c393b1097bb0e89eeff18ae9317d963d206ae25b7",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/lucid/tx_signed.ts": "677b4fb312f8784ef034f4739deab0f0ee00cc4d2b104d4fd9ec6818904af4cd",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/misc/crc8.ts": "c9abda52851d5c575f6a8714c3600d2e63bb8cfc942e035486b1ab03b780e2f9",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/misc/sign_message.ts": "142f8233f890a1fccae83e12a6261308a0b3c025600cb97a2e90d9dddf6289d3",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/mod.ts": "3d0e2433cce512905d58beb055dee89f8892ecbeeeea3a3b23965b613ac9763b",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/plutus/data.ts": "175b965fefe0125e891e4b95a9ff7d2d552e9f2adc140abef48df931c0994aa6",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/plutus/mod.ts": "0773a617d39fc33cfec4772c1479369c5c76733e0f0b3ca8159979247a8dd931",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/provider/blockfrost.ts": "116a23b524243a8745ac9ec75923e63129307c9d00c628bc43aba614339e8be5",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/provider/emulator.ts": "a24254a82c3133efc43cd8bbdc5d63597be4f258df7c3a6582701e81ccd74133",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/provider/kupmios.ts": "eed71b6f61264c18f41a6e9c3ac04cde0022920e664945e259dd3df6856aa953",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/provider/maestro.ts": "f2f4fbb5495240b5139d2874c37175060a99226920c0ce1b9a4203d6b3d8dc12",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/provider/mod.ts": "76b36094551556045e851fe0ba6012626e1a08c03dec62a21b69d22311266379",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/utils/merkle_tree.ts": "af39a9167eb8b083a19a980916c95ab40332e959ef20bc43fdfef69eef08e594",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/utils/mod.ts": "f4cc15391fd5484050038bbb2a7a326017062034b94f85e0ab5f2d2c5ad790e3",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/utils/script_utility.ts": "754d992a8207d0eddbf24f4465b919b5548c68526000a1777b854a22a7063d0e",
+    "https://raw.githubusercontent.com/spacebudz/lucid/3631871f69964181d308a1c1ba07fdd3c2be8c5d/src/utils/utils.ts": "e46092cebe5ce26bb6ef5b072b82b9cb93a02cff8eb12eeac6c55239135bf9d1",
     "https://raw.githubusercontent.com/spacebudz/lucid/4c3b0cb143e0ccc76631c0ca6f7925d6841b71f8/mod.ts": "9473507398048cb24dbb37b3a220777106c69c28d573898648deb2bb84a7e131",
     "https://raw.githubusercontent.com/spacebudz/lucid/4c3b0cb143e0ccc76631c0ca6f7925d6841b71f8/package.json": "036669fcc547fb3001619e5c8e461094d210884aa202051af7002ea1998a0477",
     "https://raw.githubusercontent.com/spacebudz/lucid/4c3b0cb143e0ccc76631c0ca6f7925d6841b71f8/src/core/core.ts": "c660358396bf3d33259521ac13c849203231409f78e46eb69a4bfb8f5b6ae813",

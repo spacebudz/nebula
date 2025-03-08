@@ -1,6 +1,6 @@
 import { Data } from "../deps.ts";
 
-const PolicyId = Data.Bytes({ minLength: 28, maxLength: 28 });
+const PolicyId = Data.Bytes(28);
 
 export const Credential = Data.Enum({
   VerificationKeyCredential: [
@@ -18,11 +18,11 @@ export const Address = Data.Object({
   stakeCredential: Data.Nullable(Data.Enum(
     { Inline: [Credential] },
     {
-      Pointer: Data.Object({
+      Pointer: {
         slotNumber: Data.Integer(),
         transactionIndex: Data.Integer(),
         certificateIndex: Data.Integer(),
-      }),
+      },
     },
   )),
 });

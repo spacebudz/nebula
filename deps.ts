@@ -1,4 +1,4 @@
-export * from "https://raw.githubusercontent.com/spacebudz/lucid/ec6a06f712fee0a4d0bc6a272093af2e7a07ada2/mod.ts";
+export * from "jsr:@spacebudz/lucid@0.20.7";
 export {
   createChainSynchronizationClient,
   createInteractionContext,
