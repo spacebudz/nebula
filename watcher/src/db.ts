@@ -22,7 +22,7 @@ import {
   PointDB,
   SaleDB,
 } from "./types.ts";
-import { Json, OutRef } from "../../deps.ts";
+import { Json, OutRef } from "lucid";
 import { config, flags } from "./flags.ts";
 // For syntax highlighting in vscode: forbeslindesay.vscode-sql-template-literal
 function sql(s: TemplateStringsArray): string {

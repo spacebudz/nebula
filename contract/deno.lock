@@ -2,14 +2,31 @@
   "version": "4",
   "specifiers": {
     "jsr:@spacebudz/lucid@0.20.7": "0.20.7",
+    "jsr:@spacebudz/lucid@0.20.8": "0.20.8",
+    "jsr:@spacebudz/lucid@0.20.9": "0.20.9",
     "jsr:@std/bytes@1.0.4": "1.0.4",
     "jsr:@std/encoding@1.0.5": "1.0.5",
     "npm:@cardano-ogmios/client@*": "6.4.0_ws@7.5.9",
-    "npm:@cardano-ogmios/schema@*": "6.4.0"
+    "npm:@cardano-ogmios/schema@*": "6.4.0",
+    "npm:@types/node@*": "22.5.4"
   },
   "jsr": {
     "@spacebudz/lucid@0.20.7": {
       "integrity": "5825f2f5f5617ca9260243bd71c6488030db2e053506250e15fc648e6f4d1375",
+      "dependencies": [
+        "jsr:@std/bytes",
+        "jsr:@std/encoding"
+      ]
+    },
+    "@spacebudz/lucid@0.20.8": {
+      "integrity": "c0dccc84722743ffdf527906cd078716472498d1f6479aba4a738edf8c617df7",
+      "dependencies": [
+        "jsr:@std/bytes",
+        "jsr:@std/encoding"
+      ]
+    },
+    "@spacebudz/lucid@0.20.9": {
+      "integrity": "2775aa7480c8418ee0095b22efc8f7313a49d354392eb48cf19d414c01a7472f",
       "dependencies": [
         "jsr:@std/bytes",
         "jsr:@std/encoding"
@@ -49,6 +66,12 @@
     },
     "@types/json-bigint@1.0.4": {
       "integrity": "sha512-ydHooXLbOmxBbubnA7Eh+RpBzuaIiQjh8WGJYQB50JFGFrdxW7JzVlyEV7fAXw0T2sqJ1ysTneJbiyNLqZRAag=="
+    },
+    "@types/node@22.5.4": {
+      "integrity": "sha512-FDuKUJQm/ju9fT/SeX/6+gBzoPzlVCzfzmGkwKvRHQVxi4BntVbyIwf6a4Xn62mrvndLiml6z/UBXIdEVjQLXg==",
+      "dependencies": [
+        "undici-types"
+      ]
     },
     "bech32@2.0.0": {
       "integrity": "sha512-LcknSilhIGatDAsY1ak2I8VtGaHNhgMSYVxFrGLXv+xLHytaKZKcaUJJUE7qmBr7h33o5YQwP55pMI0xmkpJwg=="
@@ -91,6 +114,9 @@
     },
     "ts-custom-error@3.3.1": {
       "integrity": "sha512-5OX1tzOjxWEgsr/YEUWSuPrQ00deKLh6D7OTWcvNHm12/7QPyRh8SYpyWvA4IZv8H/+GQWQEh/kwo95Q9OVW1A=="
+    },
+    "undici-types@6.19.8": {
+      "integrity": "sha512-ve2KP6f/JnbPBFyobGHuerC9g1FYGn/F8n1LWTwNxCEzd6IfqTwUQcNXgEtmmQ6DlRrC1hrSrBnCZPokRrDHjw=="
     },
     "webidl-conversions@3.0.1": {
       "integrity": "sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ=="
@@ -1209,5 +1235,12 @@
     "https://raw.githubusercontent.com/spacebudz/lucid/main/src/utils/merkle_tree.ts": "af39a9167eb8b083a19a980916c95ab40332e959ef20bc43fdfef69eef08e594",
     "https://raw.githubusercontent.com/spacebudz/lucid/main/src/utils/mod.ts": "7e405bfa0db96d9e995e67fb77251e8465843addf141caf4ce64b3efa6077822",
     "https://raw.githubusercontent.com/spacebudz/lucid/main/src/utils/utils.ts": "176ef591fdb2403a51e82e29c2d1c530733edcb97dfa69027dddd1931cb0573c"
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@spacebudz/lucid@0.20.9",
+      "npm:@cardano-ogmios/client@*",
+      "npm:@cardano-ogmios/schema@*"
+    ]
   }
 }

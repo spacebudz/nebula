@@ -1,7 +1,7 @@
 {
   "tasks": {
     "build": "deno run -A build.ts",
-    "build:contract": "cd src/nebula && aiken build && deno run -A https://raw.githubusercontent.com/spacebudz/lucid/ec6a06f712fee0a4d0bc6a272093af2e7a07ada2/blueprint.ts",
+    "build:contract": "cd src/nebula && aiken build && deno run -A jsr:@spacebudz/lucid@0.20.9/blueprint",
     "test": "deno test --allow-env --allow-read --allow-net tests",
     "test:contract": "cd src/nebula && aiken check"
   },
@@ -10,5 +10,6 @@
       "include": ["src/"],
       "exclude": ["src/ghc/", "src/onchain.hs"]
     }
-  }
+  },
+  "importMap": "../deno.json"
 }

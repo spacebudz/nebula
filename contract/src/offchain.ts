@@ -12,7 +12,7 @@ import {
   toUnit,
   Tx,
   Utxo,
-} from "../../deps.ts";
+} from "lucid";
 import {
   checkVariableFee,
   fromAddress,

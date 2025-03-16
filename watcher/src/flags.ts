@@ -1,6 +1,6 @@
 import { Config, MarketplaceEvent } from "./types.ts";
 import { parse } from "https://deno.land/std@0.119.0/flags/mod.ts";
-import packageInfo from "../../package.json" assert { type: "json" };
+import packageInfo from "../../package.json" with { type: "json" };
 import { resolvePath } from "./utils.ts";
 
 export const flags = parse(Deno.args, {

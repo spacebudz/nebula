@@ -1,5 +1,5 @@
 // deno-lint-ignore-file
-import { applyParamsToScript, Data, Script } from "jsr:@spacebudz/lucid@0.20.7";
+import { applyParamsToScript, Data, Script } from "jsr:@spacebudz/lucid@0.20.9";
 
 export type ByteArray = string;
 export type Int = bigint;

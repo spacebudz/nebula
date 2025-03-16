@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.167.0/http/server.ts";
 import { serveFile } from "https://deno.land/std@0.167.0/http/file_server.ts";
-import packageInfo from "../../package.json" assert { type: "json" };
+import packageInfo from "../../package.json" with { type: "json" };
 import { parse } from "https://deno.land/std@0.119.0/flags/mod.ts";
 import { DB } from "https://deno.land/x/sqlite@v3.7.0/mod.ts";
 import { resolvePath } from "./utils.ts";

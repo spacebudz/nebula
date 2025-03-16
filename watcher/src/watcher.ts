@@ -1,5 +1,4 @@
 import {
-  BlockPraos,
   Data,
   fromText,
   Hasher,
@@ -7,10 +6,13 @@ import {
   paymentCredentialOf,
   toLabel,
   toText,
+  Utils,
+} from "lucid";
+import {
+  BlockPraos,
   Transaction,
   TransactionOutput,
-  Utils,
-} from "../../deps.ts";
+} from "@cardano-ogmios/schema";
 import { assetsToAsssetsWithNumber } from "./utils.ts";
 import { toAssets, toOwner } from "../../common/utils.ts";
 import {

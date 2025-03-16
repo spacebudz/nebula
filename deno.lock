@@ -3,6 +3,7 @@
   "specifiers": {
     "jsr:@spacebudz/lucid@*": "0.20.6",
     "jsr:@spacebudz/lucid@0.20.7": "0.20.7",
+    "jsr:@spacebudz/lucid@0.20.9": "0.20.9",
     "jsr:@std/bytes@1.0.4": "1.0.4",
     "jsr:@std/encoding@1.0.5": "1.0.5",
     "npm:@cardano-ogmios/client@*": "6.9.0_ws@7.5.10",
@@ -19,6 +20,13 @@
     },
     "@spacebudz/lucid@0.20.7": {
       "integrity": "5825f2f5f5617ca9260243bd71c6488030db2e053506250e15fc648e6f4d1375",
+      "dependencies": [
+        "jsr:@std/bytes",
+        "jsr:@std/encoding"
+      ]
+    },
+    "@spacebudz/lucid@0.20.9": {
+      "integrity": "2775aa7480c8418ee0095b22efc8f7313a49d354392eb48cf19d414c01a7472f",
       "dependencies": [
         "jsr:@std/bytes",
         "jsr:@std/encoding"

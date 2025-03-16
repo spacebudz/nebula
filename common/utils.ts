@@ -6,7 +6,7 @@ import {
   toLabel,
   Utils,
   Utxo,
-} from "../deps.ts";
+} from "lucid";
 import * as D from "./contract.types.ts";
 
 const lucid = new Lucid();

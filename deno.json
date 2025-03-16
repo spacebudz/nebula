@@ -1,1 +1,7 @@
-{ "nodeModulesDir": "none" }
+{
+  "imports": {
+    "lucid": "jsr:@spacebudz/lucid@0.20.9",
+    "@cardano-ogmios/client": "npm:@cardano-ogmios/client",
+    "@cardano-ogmios/schema": "npm:@cardano-ogmios/schema"
+  }
+}

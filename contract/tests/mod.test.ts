@@ -10,7 +10,7 @@ import {
   paymentCredentialOf,
   Script,
   toUnit,
-} from "../../deps.ts";
+} from "lucid";
 import { Contract } from "../mod.ts";
 import { assert } from "https://deno.land/std@0.145.0/testing/asserts.ts";
 import { idToBud } from "../../common/utils.ts";

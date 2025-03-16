@@ -1,4 +1,4 @@
-import { Data } from "../deps.ts";
+import { Data } from "lucid";
 
 const PolicyId = Data.Bytes(28);
 

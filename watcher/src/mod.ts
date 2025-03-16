@@ -1,11 +1,8 @@
 import {
-  Block,
   createChainSynchronizationClient,
   createInteractionContext,
-  Origin,
-  Point,
-  Tip,
-} from "../../deps.ts";
+} from "@cardano-ogmios/client";
+import { Block, Origin, Point, Tip } from "@cardano-ogmios/schema";
 import { db } from "./db.ts";
 import { eventsHandler, flags, onChange } from "./flags.ts";
 import { isEmptyString, pipe, pointToPointDB } from "./utils.ts";
@@ -44,7 +41,8 @@ function rollForward({ block }: {
   if (db.hasChange()) onChange();
 
   if (hasExited) {
-    if (client.context.socket.readyState === client.context.socket.OPEN) {
+    const socket = client.context.socket as WebSocket;
+    if (socket.readyState === socket.OPEN) {
       return client.shutdown();
     } else {
       return new Promise((res) => res());

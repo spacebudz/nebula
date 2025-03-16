@@ -1,4 +1,5 @@
-import { Assets, Json, Origin, OutRef, Point } from "../../deps.ts";
+import { Assets, Json, OutRef } from "lucid";
+import { Origin, Point } from "@cardano-ogmios/schema";
 import { AssetsWithNumber, CheckpointType, PointDB } from "./types.ts";
 import {
   isAbsolute,
