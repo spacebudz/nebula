@@ -6,7 +6,7 @@
 
 ## Requirements
 
-- [Deno](https://deno.land/) $\ge$ Version 1.28.3
+- [Deno](https://deno.land/) $\ge$ Version 2.1
 - [Aiken](https://github.com/aiken-lang/aiken.git) (`cargo install --git https://github.com/aiken-lang/aiken.git --rev ae981403c67adf6399695c0832e854865c621fcb`)
 
 ## Installation (Contract)
@@ -30,13 +30,12 @@ npm install @spacebudz/nebula
 import { Contract } from "https://deno.land/x/nebula@1.0.5/contract/mod.ts"
 import { Lucid, Blockfrost } from "https://deno.land/x/lucid@0.10.9/mod.ts"
 
-const lucid = await Lucid.new(
-  new Blockfrost(
+const lucid = new Lucid({
+  provider: new Blockfrost(
     "https://cardano-preprod.blockfrost.io/api/v0",
     "<project_id>",
   ),
-  "Preprod",
-);
+});
 
 lucid.selectWalletFromSeed(
   "<seed_phrase>",
@@ -135,7 +134,7 @@ It is not a requirement to run the core of the marketplace.
 
 ### Requirements
 
-- [Deno](https://deno.land/) $\ge$ Version 1.28.3
+- [Deno](https://deno.land/) $\ge$ Version 2.1
 - [Cardano-node](https://github.com/IntersectMBO/cardano-node) $\ge$ Version 9.1.0
 - [Ogmios](https://ogmios.dev/) $\ge$ Version 6.5.0
 - Active connection to a Cardano node with Ogmios as bridge.
