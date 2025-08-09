@@ -1,30 +1,16 @@
 {
-  "version": "4",
+  "version": "5",
   "specifiers": {
-    "jsr:@spacebudz/lucid@0.20.7": "0.20.7",
-    "jsr:@spacebudz/lucid@0.20.8": "0.20.8",
+    "jsr:@spacebudz/lucid@0.20.12": "0.20.12",
     "jsr:@spacebudz/lucid@0.20.9": "0.20.9",
     "jsr:@std/bytes@1.0.4": "1.0.4",
+    "jsr:@std/crypto@1.0.4": "1.0.4",
     "jsr:@std/encoding@1.0.5": "1.0.5",
     "npm:@cardano-ogmios/client@*": "6.4.0_ws@7.5.9",
     "npm:@cardano-ogmios/schema@*": "6.4.0",
     "npm:@types/node@*": "22.5.4"
   },
   "jsr": {
-    "@spacebudz/lucid@0.20.7": {
-      "integrity": "5825f2f5f5617ca9260243bd71c6488030db2e053506250e15fc648e6f4d1375",
-      "dependencies": [
-        "jsr:@std/bytes",
-        "jsr:@std/encoding"
-      ]
-    },
-    "@spacebudz/lucid@0.20.8": {
-      "integrity": "c0dccc84722743ffdf527906cd078716472498d1f6479aba4a738edf8c617df7",
-      "dependencies": [
-        "jsr:@std/bytes",
-        "jsr:@std/encoding"
-      ]
-    },
     "@spacebudz/lucid@0.20.9": {
       "integrity": "2775aa7480c8418ee0095b22efc8f7313a49d354392eb48cf19d414c01a7472f",
       "dependencies": [
@@ -32,8 +18,19 @@
         "jsr:@std/encoding"
       ]
     },
+    "@spacebudz/lucid@0.20.12": {
+      "integrity": "ee9885942b2760233991269c815feae775241d1dc74e59b804b9069e30a19eb6",
+      "dependencies": [
+        "jsr:@std/bytes",
+        "jsr:@std/crypto",
+        "jsr:@std/encoding"
+      ]
+    },
     "@std/bytes@1.0.4": {
       "integrity": "11a0debe522707c95c7b7ef89b478c13fb1583a7cfb9a85674cd2cc2e3a28abc"
+    },
+    "@std/crypto@1.0.4": {
+      "integrity": "cee245c453bd5366207f4d8aa25ea3e9c86cecad2be3fefcaa6cb17203d79340"
     },
     "@std/encoding@1.0.5": {
       "integrity": "ecf363d4fc25bd85bd915ff6733a7e79b67e0e7806334af15f4645c569fefc04"
@@ -98,12 +95,16 @@
       ]
     },
     "nanoid@3.3.7": {
-      "integrity": "sha512-eSRppjcPIatRIMC1U6UngP8XFcz8MQWGQdt1MTBQ7NaAmvXDfvNxbvWV3x2y6CdEUciCSsDHDQZbhYaB8QEo2g=="
+      "integrity": "sha512-eSRppjcPIatRIMC1U6UngP8XFcz8MQWGQdt1MTBQ7NaAmvXDfvNxbvWV3x2y6CdEUciCSsDHDQZbhYaB8QEo2g==",
+      "bin": true
     },
     "node-fetch@2.7.0": {
       "integrity": "sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==",
       "dependencies": [
         "whatwg-url"
+      ],
+      "optionalPeers": [
+        "encoding@^0.1.0"
       ]
     },
     "reusify@1.0.4": {
@@ -129,7 +130,11 @@
       ]
     },
     "ws@7.5.9": {
-      "integrity": "sha512-F+P9Jil7UiSKSkppIiD94dN07AwvFixvLIj1Og1Rl9GGMuNipJnV9JzjD6XuqmAeiswGvUmNLjr5cFuXwNS77Q=="
+      "integrity": "sha512-F+P9Jil7UiSKSkppIiD94dN07AwvFixvLIj1Og1Rl9GGMuNipJnV9JzjD6XuqmAeiswGvUmNLjr5cFuXwNS77Q==",
+      "optionalPeers": [
+        "bufferutil@^4.0.1",
+        "utf-8-validate@^5.0.2"
+      ]
     }
   },
   "remote": {
@@ -1238,7 +1243,7 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@spacebudz/lucid@0.20.9",
+      "jsr:@spacebudz/lucid@0.20.12",
       "npm:@cardano-ogmios/client@*",
       "npm:@cardano-ogmios/schema@*"
     ]
