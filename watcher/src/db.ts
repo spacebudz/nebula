@@ -1,4 +1,4 @@
-import { DB } from "https://deno.land/x/sqlite@v3.7.0/mod.ts";
+import { DB } from "https://deno.land/x/sqlite@v3.9.1/mod.ts";
 import {
   checkpointToColor,
   fromMergedOutRef,
