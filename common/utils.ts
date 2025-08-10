@@ -1,16 +1,15 @@
 import {
-  Address,
+  Addresses,
   Assets,
-  C,
   fromText,
-  getAddressDetails,
   Lucid,
   toLabel,
-  UTxO,
-} from "../deps.ts";
+  Utils,
+  Utxo,
+} from "lucid";
 import * as D from "./contract.types.ts";
 
-const lucid = await Lucid.new();
+const lucid = new Lucid();
 
 export function idToBud(id: number): string {
   return toLabel(222) + fromText(`Bud${id}`);
@@ -24,7 +23,7 @@ export function idToMatrix(id: number): string {
   return toLabel(222) + fromText(`Matrix${id}`);
 }
 
-export function sortDesc(a: UTxO, b: UTxO): number {
+export function sortDesc(a: Utxo, b: Utxo): number {
   if (a.assets.lovelace > b.assets.lovelace) {
     return -1;
   } else if (a.assets.lovelace < b.assets.lovelace) {
@@ -34,7 +33,7 @@ export function sortDesc(a: UTxO, b: UTxO): number {
   }
 }
 
-export function sortAsc(a: UTxO, b: UTxO): number {
+export function sortAsc(a: Utxo, b: Utxo): number {
   if (a.assets.lovelace > b.assets.lovelace) {
     return 1;
   } else if (a.assets.lovelace < b.assets.lovelace) {
@@ -45,61 +44,59 @@ export function sortAsc(a: UTxO, b: UTxO): number {
 }
 
 export function toOwner(
-  { address, data }: { address?: Address; data?: D.Address },
+  { address, data }: { address?: string; data?: D.Address },
 ): string {
-  const { paymentCredential } = getAddressDetails(
+  const { payment } = Addresses.inspect(
     address || toAddress(
       data!,
       lucid,
     ),
   );
-  if (paymentCredential?.type === "Key") {
-    return C.Ed25519KeyHash.from_hex(paymentCredential.hash).to_bech32(
-      "addr_vkh",
-    );
-  } else if (paymentCredential?.type === "Script") {
-    return C.ScriptHash.from_hex(paymentCredential.hash).to_bech32("script");
+  if (payment?.type === "Key") {
+    return Utils.encodeBech32("addr_vkh", payment.hash);
+  } else if (payment?.type === "Script") {
+    return Utils.encodeBech32("script", payment.hash);
   }
   return "";
 }
 
-export function fromAddress(address: Address): D.Address {
+export function fromAddress(address: string): D.Address {
   // We do not support pointer addresses!
 
-  const { paymentCredential, stakeCredential } = getAddressDetails(
+  const { payment, delegation } = Addresses.inspect(
     address,
   );
 
-  if (!paymentCredential) throw new Error("Not a valid payment address.");
+  if (!payment) throw new Error("Not a valid payment address.");
 
   return {
-    paymentCredential: paymentCredential?.type === "Key"
+    paymentCredential: payment?.type === "Key"
       ? {
-        VerificationKeyCredential: [paymentCredential.hash],
+        VerificationKeyCredential: [payment.hash],
       }
-      : { ScriptCredential: [paymentCredential.hash] },
-    stakeCredential: stakeCredential
+      : { ScriptCredential: [payment.hash] },
+    stakeCredential: delegation
       ? {
         Inline: [
-          stakeCredential.type === "Key"
+          delegation.type === "Key"
             ? {
-              VerificationKeyCredential: [stakeCredential.hash],
+              VerificationKeyCredential: [delegation.hash],
             }
-            : { ScriptCredential: [stakeCredential.hash] },
+            : { ScriptCredential: [delegation.hash] },
         ],
       }
       : null,
   };
 }
 
-export function toAddress(address: D.Address, lucid: Lucid): Address {
+export function toAddress(address: D.Address, lucid: Lucid): string {
   const paymentCredential = (() => {
     if ("VerificationKeyCredential" in address.paymentCredential) {
-      return lucid.utils.keyHashToCredential(
+      return Addresses.keyHashToCredential(
         address.paymentCredential.VerificationKeyCredential[0],
       );
     } else {
-      return lucid.utils.scriptHashToCredential(
+      return Addresses.scriptHashToCredential(
         address.paymentCredential.ScriptCredential[0],
       );
     }
@@ -108,11 +105,11 @@ export function toAddress(address: D.Address, lucid: Lucid): Address {
     if (!address.stakeCredential) return undefined;
     if ("Inline" in address.stakeCredential) {
       if ("VerificationKeyCredential" in address.stakeCredential.Inline[0]) {
-        return lucid.utils.keyHashToCredential(
+        return Addresses.keyHashToCredential(
           address.stakeCredential.Inline[0].VerificationKeyCredential[0],
         );
       } else {
-        return lucid.utils.scriptHashToCredential(
+        return Addresses.scriptHashToCredential(
           address.stakeCredential.Inline[0].ScriptCredential[0],
         );
       }

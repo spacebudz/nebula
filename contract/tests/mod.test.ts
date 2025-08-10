@@ -1,77 +1,80 @@
 import {
+  Addresses,
   Assets,
   Constr,
+  Crypto,
   Data,
   Emulator,
   fromText,
-  generateSeedPhrase,
   Lucid,
   paymentCredentialOf,
-  SpendingValidator,
+  Script,
   toUnit,
-} from "../../deps.ts";
+} from "lucid";
 import { Contract } from "../mod.ts";
 import { assert } from "https://deno.land/std@0.145.0/testing/asserts.ts";
 import { idToBud } from "../../common/utils.ts";
 
-async function generateAccount(assets: Assets) {
-  const seedPhrase = generateSeedPhrase();
+function generateAccount(assets: Assets) {
+  const seedPhrase = Crypto.generateSeed();
+  const { credential } = Crypto.seedToDetails(seedPhrase, 0, "Payment");
+  const address = Addresses.credentialToAddress({ Emulator: 0 }, credential);
   return {
     seedPhrase,
-    address: await (await Lucid.new(undefined, "Custom"))
-      .selectWalletFromSeed(seedPhrase).wallet.address(),
+    address,
     assets,
   };
 }
 
-const ACCOUNT_0 = await generateAccount({ lovelace: 30000000000n });
-const ACCOUNT_1 = await generateAccount({ lovelace: 75000000000n });
+const ACCOUNT_0 = generateAccount({ lovelace: 30000000000n });
+const ACCOUNT_1 = generateAccount({ lovelace: 75000000000n });
 
 const emulator = new Emulator([ACCOUNT_0, ACCOUNT_1]);
 
-const lucid = await Lucid.new(emulator);
+const lucid = new Lucid({ provider: emulator });
 
 lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase);
 
 // ---- SETUP
 
 async function createNFTs() {
-  const { paymentCredential } = lucid.utils.getAddressDetails(
+  const { payment } = Addresses.inspect(
     await lucid.wallet.address(),
   );
-  const script = lucid.utils.nativeScriptFromJson({
-    type: "all",
+  const script = lucid.newScript({
+    type: "All",
     scripts: [
-      { type: "after", slot: 10 },
-      { type: "sig", keyHash: paymentCredential?.hash! },
+      { type: "After", slot: 10 },
+      { type: "Sig", keyHash: payment!.hash },
     ],
   });
 
   emulator.awaitBlock(10);
 
-  const policyId = lucid.utils.mintingPolicyToId(script);
+  const policyId = script.toHash();
 
-  const unspendableScript: SpendingValidator = {
+  const unspendableScript: Script = {
     type: "PlutusV2",
     script: "54530100003222233335734600893124c4c9312501",
   };
-  const unspendableAddress = lucid.utils.validatorToAddress(unspendableScript);
+  const unspendableAddress = lucid.utils.scriptToAddress(unspendableScript);
 
-  const tx = await lucid.newTx().mintAssets({
-    [toUnit(policyId, fromText("Bud0"), 100)]: 1n,
-    [toUnit(policyId, fromText("Bud0"), 222)]: 1n,
-    [toUnit(policyId, fromText("Bud25"), 100)]: 1n,
-    [toUnit(policyId, fromText("Bud25"), 222)]: 1n,
-    [toUnit(policyId, fromText("Bud32"), 100)]: 1n,
-    [toUnit(policyId, fromText("Bud32"), 222)]: 1n,
-    [toUnit(policyId, fromText("Bud1111"), 100)]: 1n,
-    [toUnit(policyId, fromText("Bud1111"), 222)]: 1n,
-  })
+  const tx = await lucid.newTx()
+    .mint({
+      [toUnit(policyId, fromText("Bud0"), 100)]: 1n,
+      [toUnit(policyId, fromText("Bud0"), 222)]: 1n,
+      [toUnit(policyId, fromText("Bud25"), 100)]: 1n,
+      [toUnit(policyId, fromText("Bud25"), 222)]: 1n,
+      [toUnit(policyId, fromText("Bud32"), 100)]: 1n,
+      [toUnit(policyId, fromText("Bud32"), 222)]: 1n,
+      [toUnit(policyId, fromText("Bud1111"), 100)]: 1n,
+      [toUnit(policyId, fromText("Bud1111"), 222)]: 1n,
+    })
     .payToContract(
       unspendableAddress,
       Data.to(
         new Constr(0, [
-          Data.fromJson({
+          Data.fromMetadata({
             name: "SpaceBud #0",
             image: "ipfs://QmSNJ78jdqwbd6yRtHzLrXNnaY8vnuuGN4AbJbMVd2XRuC",
             traits: ["Special Background", "Axe", "Belt"],
@@ -90,7 +93,7 @@ async function createNFTs() {
       unspendableAddress,
       Data.to(
         new Constr(0, [
-          Data.fromJson({
+          Data.fromMetadata({
             name: "SpaceBud #25",
             image: "ipfs://QmSNJ78jdqwbd6yRtHzLrXNnaY8vnuuGN4AbJbMVd2XRuC",
             traits: ["Belt", "Axe"],
@@ -109,7 +112,7 @@ async function createNFTs() {
       unspendableAddress,
       Data.to(
         new Constr(0, [
-          Data.fromJson({
+          Data.fromMetadata({
             name: "SpaceBud #32",
             image: "ipfs://QmSNJ78jdqwbd6yRtHzLrXNnaY8vnuuGN4AbJbMVd2XRuC",
             traits: ["Jo-Jo", "Covered Helmet"],
@@ -128,7 +131,7 @@ async function createNFTs() {
       unspendableAddress,
       Data.to(
         new Constr(0, [
-          Data.fromJson({
+          Data.fromMetadata({
             name: "SpaceBud #1111",
             image: "ipfs://QmSNJ78jdqwbd6yRtHzLrXNnaY8vnuuGN4AbJbMVd2XRuC",
             traits: [],
@@ -144,9 +147,10 @@ async function createNFTs() {
       },
     )
     .validFrom(emulator.now())
-    .attachMintingPolicy(script).complete();
+    .attachScript(script.script)
+    .commit();
 
-  const signedTx = await tx.sign().complete();
+  const signedTx = await tx.sign().commit();
   return { txHash: await signedTx.submit(), policyId };
 }
 
@@ -309,15 +313,15 @@ Deno.test("Swap with constraints", async () => {
     await contract.sell([{ bidUtxo: bid, assetName: idToBud(25) }]),
   );
   await lucid.selectWalletFromSeed(ACCOUNT_0.seedPhrase).awaitTx(
-    await lucid.newTx().payToAddress(ACCOUNT_1.address, {
+    await lucid.newTx().payTo(ACCOUNT_1.address, {
       [contract.config.policyId + idToBud(1111)]: 1n,
-    }).complete().then((tx) => tx.sign().complete()).then((tx) => tx.submit()),
+    }).commit().then((tx) => tx.sign().commit()).then((tx) => tx.submit()),
   );
   await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
-    await lucid.newTx().payToAddress(ACCOUNT_0.address, {
+    await lucid.newTx().payTo(ACCOUNT_0.address, {
       [contract.config.policyId + idToBud(25)]: 1n,
       [contract.config.policyId + idToBud(32)]: 1n,
-    }).complete().then((tx) => tx.sign().complete()).then((tx) => tx.submit()),
+    }).commit().then((tx) => tx.sign().commit()).then((tx) => tx.submit()),
   );
 });
 
@@ -349,8 +353,8 @@ Deno.test("Combine endpoints", async () => {
     .compose(await contract._buy(listing1))
     .compose(await contract._buy(listing2))
     .compose(await contract._bidOpen(200000000n, { types: ["Ape"] }))
-    .complete();
-  const signedTx = await doMultiple.sign().complete();
+    .commit();
+  const signedTx = await doMultiple.sign().commit();
   await lucid.awaitTx(await signedTx.submit());
 });
 
@@ -381,29 +385,29 @@ Deno.test("Bundle listing", async () => {
 });
 
 Deno.test("List and cancel as multisig", async () => {
-  const script = lucid.utils.nativeScriptFromJson({
-    type: "sig",
+  const script = lucid.newScript({
+    type: "Sig",
     keyHash: paymentCredentialOf(ACCOUNT_1.address).hash,
   });
-  const scriptAddress = lucid.utils.validatorToAddress(script);
+  const scriptAddress = script.toAddress();
 
   await lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase).awaitTx(
-    await lucid.newTx().payToAddress(scriptAddress, {
+    await lucid.newTx().payTo(scriptAddress, {
       lovelace: 50000000n,
       [contract.config.policyId + idToBud(0)]: 1n,
-    }).complete().then((tx) => tx.sign().complete()).then((tx) => tx.submit()),
+    }).commit().then((tx) => tx.sign().commit()).then((tx) => tx.submit()),
   );
 
   await lucid.awaitTx(
     await lucid
-      .selectWalletFrom({ address: scriptAddress })
+      .selectReadOnlyWallet({ address: scriptAddress })
       .newTx()
       .compose(await contract._list({ [idToBud(0)]: 1n }, 800000000n))
-      .attachSpendingValidator(script)
-      .complete()
+      .attachScript(script.script)
+      .commit()
       .then((tx) => {
         lucid.selectWalletFromSeed(ACCOUNT_1.seedPhrase);
-        return tx.sign().complete();
+        return tx.sign().commit();
       })
       .then((tx) => tx.submit()),
   );
@@ -416,11 +420,11 @@ Deno.test("List and cancel as multisig", async () => {
       .selectWalletFromSeed(ACCOUNT_1.seedPhrase)
       .newTx()
       .collectFrom([scriptUtxo]) // Proving ownership
-      .payToAddress(scriptUtxo.address, scriptUtxo.assets)
+      .payTo(scriptUtxo.address, scriptUtxo.assets)
       .compose(await contract._cancelListing(listing))
-      .attachSpendingValidator(script)
-      .complete()
-      .then((tx) => tx.sign().complete())
+      .attachScript(script.script)
+      .commit()
+      .then((tx) => tx.sign().commit())
       .then((tx) => tx.submit()),
   );
 });

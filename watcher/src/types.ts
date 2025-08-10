@@ -1,12 +1,5 @@
-import {
-  Json,
-  OutRef,
-  Point,
-  PolicyId,
-  Slot,
-  TxHash,
-  Unit,
-} from "../../deps.ts";
+import { Json, OutRef } from "lucid";
+import { Point, PolicyId, Slot } from "@cardano-ogmios/schema";
 
 export type Config = {
   /**  Hash of the marketplace contract address. */
@@ -25,7 +18,7 @@ export type PointDB = { hash: string; slot: number };
  * We cannot and do not need to store asset quantities in bigint format.
  * Number is sufficient enough and can easily be converted from and to json and stored in the sqlite database.
  */
-export type AssetsWithNumber = Record<Unit, number>;
+export type AssetsWithNumber = Record<string, number>;
 
 export type MarketplaceEvent = {
   type: MarketplaceEventType;
@@ -90,7 +83,7 @@ export type BidDB = {
 };
 
 export type SaleDB = {
-  txHash: TxHash;
+  txHash: string;
   point: PointDB;
   type: BuyEventType | SellEventType;
   assets: AssetsWithNumber;
@@ -104,7 +97,7 @@ export type SaleDB = {
 };
 
 export type CancellationDB = {
-  txHash: TxHash;
+  txHash: string;
   point: PointDB;
   type: CancelListingEventType | CancelBidEventType;
   assets?: AssetsWithNumber | null;
@@ -118,7 +111,7 @@ export type CancellationDB = {
 };
 
 export type BidAndListingEventData = {
-  txHash: TxHash;
+  txHash: string;
   slot: Slot;
   assets: AssetsWithNumber;
   /** Bech32 payment credential */
@@ -128,7 +121,7 @@ export type BidAndListingEventData = {
 };
 
 export type BidOpenEventData = {
-  txHash: TxHash;
+  txHash: string;
   slot: Slot;
   policyId: PolicyId;
   constraints?: Json;
@@ -139,7 +132,7 @@ export type BidOpenEventData = {
 };
 
 export type BidSwapEventData = {
-  txHash: TxHash;
+  txHash: string;
   slot: Slot;
   policyId: PolicyId;
   constraints?: Json;
@@ -151,7 +144,7 @@ export type BidSwapEventData = {
 };
 
 export type SaleEventData = {
-  txHash: TxHash;
+  txHash: string;
   slot: Slot;
   assets: AssetsWithNumber;
   /** We can savely use number here and don't need bigint. */

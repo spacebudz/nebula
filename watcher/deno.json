@@ -3,5 +3,6 @@
     "files": {
       "include": ["src/"]
     }
-  }
+  },
+  "importMap": "../deno.json"
 }
