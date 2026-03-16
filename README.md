@@ -1,3 +1,5 @@
+## [Deprecated]
+
 <p align="center">
   <img width="190px" src="./assets/nebula.svg" align="center"/>
   <h1 align="center">Nebula</h1>
